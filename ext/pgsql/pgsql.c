@@ -1656,7 +1656,7 @@ PHP_FUNCTION(pg_query)
 
 #if HAVE_PQEXECPARAMS || HAVE_PQEXECPREPARED || HAVE_PQSENDQUERYPARAMS || HAVE_PQSENDQUERYPREPARED
 /* {{{ _php_pgsql_free_params */
-static void _php_pgsql_free_params(char **params, int num_params)
+static void _php_pgsql_free_params(char **params, int *params_len, int *params_format, int num_params)
 {
 	if (num_params > 0) {
 		int i;
@@ -1666,9 +1666,21 @@ static void _php_pgsql_free_params(char **params, int num_params)
 			}
 		}
 		efree(params);
+		efree(params_len);
+		efree(params_format);
 	}
 }
 /* }}} */
+
+/* {{{ _php_pgsql_alloc_params */
+static void _php_pgsql_alloc_params(char ***params, int **params_len, int **params_format, int num_params)
+{
+	if (num_params > 0) {
+		*params = (char **)safe_emalloc(sizeof(char *), num_params, 0);
+		*params_len = (int *)safe_emalloc(sizeof(int), num_params, 0);
+		*params_format = (int *)safe_emalloc(sizeof(int), num_params, 0);
+	}
+}
 #endif
 
 #if HAVE_PQEXECPARAMS
@@ -1683,6 +1695,8 @@ PHP_FUNCTION(pg_query_params)
 	int leftover = 0;
 	int num_params = 0;
 	char **params = NULL;
+	int *params_len = NULL;
+	int *params_format = NULL;
 	PGconn *pgsql;
 	PGresult *pgsql_result;
 	ExecStatusType status;
@@ -1722,12 +1736,11 @@ PHP_FUNCTION(pg_query_params)
 	num_params = zend_hash_num_elements(Z_ARRVAL_P(pv_param_arr));
 	if (num_params > 0) {
 		int i = 0;
-		params = (char **)safe_emalloc(sizeof(char *), num_params, 0);
-		
+		_php_pgsql_alloc_params(&params, &params_len, &params_format, num_params);
 		for(i = 0; i < num_params; i++) {
 			if (zend_hash_get_current_data(Z_ARRVAL_P(pv_param_arr), (void **) &tmp) == FAILURE) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING,"Error getting parameter");
-				_php_pgsql_free_params(params, num_params);
+				_php_pgsql_free_params(params, params_len, params_format, num_params);
 				RETURN_FALSE;
 			}
 
@@ -1740,7 +1753,7 @@ PHP_FUNCTION(pg_query_params)
 				if (Z_TYPE(tmp_val) != IS_STRING) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING,"Error converting parameter");
 					zval_dtor(&tmp_val);
-					_php_pgsql_free_params(params, num_params);
+					_php_pgsql_free_params(params, params_len, params_format, num_params);
 					RETURN_FALSE;
 				}
 				params[i] = estrndup(Z_STRVAL(tmp_val), Z_STRLEN(tmp_val));
@@ -1765,8 +1778,8 @@ PHP_FUNCTION(pg_query_params)
 	} else {
 		status = (ExecStatusType) PQstatus(pgsql);
 	}
-	
-	_php_pgsql_free_params(params, num_params);
+
+	_php_pgsql_free_params(params, params_len, params_format, num_params);
 
 	switch (status) {
 		case PGRES_EMPTY_QUERY:
@@ -1890,6 +1903,8 @@ PHP_FUNCTION(pg_execute)
 	int leftover = 0;
 	int num_params = 0;
 	char **params = NULL;
+	int *params_len = NULL;
+	int *params_format = NULL;
 	PGconn *pgsql;
 	PGresult *pgsql_result;
 	ExecStatusType status;
@@ -1929,12 +1944,11 @@ PHP_FUNCTION(pg_execute)
 	num_params = zend_hash_num_elements(Z_ARRVAL_P(pv_param_arr));
 	if (num_params > 0) {
 		int i = 0;
-		params = (char **)safe_emalloc(sizeof(char *), num_params, 0);
-		
+		_php_pgsql_alloc_params(&params, &params_len, &params_format, num_params);
 		for(i = 0; i < num_params; i++) {
 			if (zend_hash_get_current_data(Z_ARRVAL_P(pv_param_arr), (void **) &tmp) == FAILURE) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING,"Error getting parameter");
-				_php_pgsql_free_params(params, num_params);
+				_php_pgsql_free_params(params, params_len, params_format, num_params);
 				RETURN_FALSE;
 			}
 
@@ -1947,10 +1961,12 @@ PHP_FUNCTION(pg_execute)
 				if (Z_TYPE(tmp_val) != IS_STRING) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING,"Error converting parameter");
 					zval_dtor(&tmp_val);
-					_php_pgsql_free_params(params, num_params);
+					_php_pgsql_free_params(params, params_len, params_format, num_params);
 					RETURN_FALSE;
 				}
 				params[i] = estrndup(Z_STRVAL(tmp_val), Z_STRLEN(tmp_val));
+				params_len[i] = Z_STRLEN(tmp_val);
+				params_format[i] = 1; /* binary format */
 				zval_dtor(&tmp_val);
 			}
 
@@ -1958,13 +1974,13 @@ PHP_FUNCTION(pg_execute)
 		}
 	}
 
-	pgsql_result = PQexecPrepared(pgsql, stmtname, num_params, 
-					(const char * const *)params, NULL, NULL, 0);
+	pgsql_result = PQexecPrepared(pgsql, stmtname, num_params,
+								  (const char * const *)params, params_len, params_format, 1);
 	if ((PGG(auto_reset_persistent) & 2) && PQstatus(pgsql) != CONNECTION_OK) {
 		PQclear(pgsql_result);
 		PQreset(pgsql);
-		pgsql_result = PQexecPrepared(pgsql, stmtname, num_params, 
-						(const char * const *)params, NULL, NULL, 0);
+		pgsql_result = PQexecPrepared(pgsql, stmtname, num_params,
+									  (const char * const *)params, params_len, params_format, 0);
 	}
 
 	if (pgsql_result) {
@@ -1972,8 +1988,8 @@ PHP_FUNCTION(pg_execute)
 	} else {
 		status = (ExecStatusType) PQstatus(pgsql);
 	}
-	
-	_php_pgsql_free_params(params, num_params);
+
+	_php_pgsql_free_params(params, params_len, params_format, num_params);
 
 	switch (status) {
 		case PGRES_EMPTY_QUERY:
@@ -2520,7 +2536,7 @@ static void php_pgsql_fetch_hash(INTERNAL_FUNCTION_PARAMETERS, long result_type,
 				char *data;
 				int data_len;
 				int should_copy=0;
-				const uint element_len = strlen(element);
+				const uint element_len = PQgetlength(pgsql_result, pgsql_row, i);
 
 				data = safe_estrndup(element, element_len);
 				data_len = element_len;
@@ -4615,6 +4631,8 @@ PHP_FUNCTION(pg_send_query_params)
 	zval *pgsql_link, *pv_param_arr, **tmp;
 	int num_params = 0;
 	char **params = NULL;
+	int *params_len = NULL;
+	int *params_format = NULL;
 	char *query;
 	int query_len, id = -1;
 	PGconn *pgsql;
@@ -4647,12 +4665,11 @@ PHP_FUNCTION(pg_send_query_params)
 	num_params = zend_hash_num_elements(Z_ARRVAL_P(pv_param_arr));
 	if (num_params > 0) {
 		int i = 0;
-		params = (char **)safe_emalloc(sizeof(char *), num_params, 0);
-		
+		_php_pgsql_alloc_params(&params, &params_len, &params_format, num_params);
 		for(i = 0; i < num_params; i++) {
 			if (zend_hash_get_current_data(Z_ARRVAL_P(pv_param_arr), (void **) &tmp) == FAILURE) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING,"Error getting parameter");
-				_php_pgsql_free_params(params, num_params);
+				_php_pgsql_free_params(params, params_len, params_format, num_params);
 				RETURN_FALSE;
 			}
 
@@ -4665,7 +4682,7 @@ PHP_FUNCTION(pg_send_query_params)
 				if (Z_TYPE(tmp_val) != IS_STRING) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING,"Error converting parameter");
 					zval_dtor(&tmp_val);
-					_php_pgsql_free_params(params, num_params);
+					_php_pgsql_free_params(params, params_len, params_format, num_params);
 					RETURN_FALSE;
 				}
 				params[i] = estrndup(Z_STRVAL(tmp_val), Z_STRLEN(tmp_val));
@@ -4681,11 +4698,11 @@ PHP_FUNCTION(pg_send_query_params)
 			PQreset(pgsql);
 		}
 		if (!PQsendQueryParams(pgsql, query, num_params, NULL, (const char * const *)params, NULL, NULL, 0)) {
-			_php_pgsql_free_params(params, num_params);
+			_php_pgsql_free_params(params, params_len, params_format, num_params);
 			RETURN_FALSE;
 		}
 	}
-	_php_pgsql_free_params(params, num_params);
+	_php_pgsql_free_params(params, params_len, params_format, num_params);
 	if (PQ_SETNONBLOCKING(pgsql, 0)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Cannot set connection to blocking mode");
 	}
@@ -4752,6 +4769,8 @@ PHP_FUNCTION(pg_send_execute)
 	zval *pv_param_arr, **tmp;
 	int num_params = 0;
 	char **params = NULL;
+	int *params_len = NULL;
+	int *params_format = NULL;
 	char *stmtname;
 	int stmtname_len, id = -1;
 	PGconn *pgsql;
@@ -4784,12 +4803,11 @@ PHP_FUNCTION(pg_send_execute)
 	num_params = zend_hash_num_elements(Z_ARRVAL_P(pv_param_arr));
 	if (num_params > 0) {
 		int i = 0;
-		params = (char **)safe_emalloc(sizeof(char *), num_params, 0);
-		
+		_php_pgsql_alloc_params(&params, &params_len, &params_format, num_params);
 		for(i = 0; i < num_params; i++) {
 			if (zend_hash_get_current_data(Z_ARRVAL_P(pv_param_arr), (void **) &tmp) == FAILURE) {
 				php_error_docref(NULL TSRMLS_CC, E_WARNING,"Error getting parameter");
-				_php_pgsql_free_params(params, num_params);
+				_php_pgsql_free_params(params, params_len, params_format, num_params);
 				RETURN_FALSE;
 			}
 
@@ -4802,7 +4820,7 @@ PHP_FUNCTION(pg_send_execute)
 				if (Z_TYPE(tmp_val) != IS_STRING) {
 					php_error_docref(NULL TSRMLS_CC, E_WARNING,"Error converting parameter");
 					zval_dtor(&tmp_val);
-					_php_pgsql_free_params(params, num_params);
+					_php_pgsql_free_params(params, params_len, params_format, num_params);
 					RETURN_FALSE;
 				}
 				params[i] = estrndup(Z_STRVAL(tmp_val), Z_STRLEN(tmp_val));
@@ -4818,11 +4836,13 @@ PHP_FUNCTION(pg_send_execute)
 			PQreset(pgsql);
 		}
 		if (!PQsendQueryPrepared(pgsql, stmtname, num_params, (const char * const *)params, NULL, NULL, 0)) {
-			_php_pgsql_free_params(params, num_params);
+			_php_pgsql_free_params(params, params_len, params_format, num_params);
 			RETURN_FALSE;
 		}
 	}
-	_php_pgsql_free_params(params, num_params);
+
+	_php_pgsql_free_params(params, params_len, params_format, num_params);
+
 	if (PQ_SETNONBLOCKING(pgsql, 0)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Cannot set connection to blocking mode");
 	}
