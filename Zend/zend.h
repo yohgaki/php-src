@@ -843,7 +843,8 @@ END_EXTERN_C()
 typedef enum {
 	EH_NORMAL = 0,
 	EH_SUPPRESS,
-	EH_THROW
+	EH_THROW,
+	EH_FATAL
 } zend_error_handling_t;
 
 typedef struct {

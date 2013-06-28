@@ -1027,6 +1027,7 @@ ZEND_API void zend_error(int type, const char *format, ...) /* {{{ */
 	zend_stack declare_stack;
 	zend_stack list_stack;
 	zend_stack context_stack;
+	int catch_fatal = 1; /* This var will be ini setting */
 	TSRMLS_FETCH();
 
 	/* Report about uncaught exception in case of fatal errors */
@@ -1108,24 +1109,29 @@ ZEND_API void zend_error(int type, const char *format, ...) /* {{{ */
 		|| !(EG(user_error_handler_error_reporting) & type)
 		|| EG(error_handling) != EH_NORMAL) {
 		zend_error_cb(type, error_filename, error_lineno, format, args);
-	} else switch (type) {
-		case E_ERROR:
-		case E_PARSE:
-		case E_CORE_ERROR:
-		case E_CORE_WARNING:
-		case E_COMPILE_ERROR:
-		case E_COMPILE_WARNING:
+	} else if (EG(error_handling == EH_FATAL)) {
+		/* Error occured while handling fatal error in user handler */
+		zend_error_cb(type, error_filename, error_lineno, format, args);
+	} else {
+		if ((type == E_ERROR && !catch_fatal) ||
+			(type == E_PARSE && !catch_fatal) ||
+			type == E_CORE_ERROR ||
+			type == E_CORE_WARNING ||
+			type == E_COMPILE_ERROR ||
+			type == E_COMPILE_WARNING) {
 			/* The error may not be safe to handle in user-space */
 			zend_error_cb(type, error_filename, error_lineno, format, args);
-			break;
-		default:
+		} else {
+			if (type == E_ERROR || type == E_PARSE) {
+				EG(error_handling) = EH_FATAL;
+			}
 			/* Handle the error in user space */
 			ALLOC_INIT_ZVAL(z_error_message);
 			ALLOC_INIT_ZVAL(z_error_type);
 			ALLOC_INIT_ZVAL(z_error_filename);
 			ALLOC_INIT_ZVAL(z_error_lineno);
 			ALLOC_INIT_ZVAL(z_context);
-
+			
 /* va_copy() is __va_copy() in old gcc versions.
  * According to the autoconf manual, using
  * memcpy(&dst, &src, sizeof(va_list))
@@ -1233,7 +1239,7 @@ ZEND_API void zend_error(int type, const char *format, ...) /* {{{ */
 			zval_ptr_dtor(&z_error_filename);
 			zval_ptr_dtor(&z_error_lineno);
 			zval_ptr_dtor(&z_context);
-			break;
+		}
 	}
 
 	va_end(args);
