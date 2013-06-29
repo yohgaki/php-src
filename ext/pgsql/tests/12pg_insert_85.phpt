@@ -22,5 +22,6 @@ echo pg_insert($db, $table_name, $fields, PGSQL_DML_STRING)."\n";
 echo "Ok\n";
 ?>
 --EXPECT--
-INSERT INTO php_pgsql_test (num,str,bin) VALUES (1234,'AAA','\\x424242');
+INSERT INTO "php_pgsql_test" ("num","str","bin") VALUES (1234,'AAA','\\x424242');
 Ok
+

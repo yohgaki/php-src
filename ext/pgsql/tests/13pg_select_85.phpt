@@ -33,5 +33,5 @@ array(1) {
     string(8) "\x424242"
   }
 }
-SELECT * FROM php_pgsql_test WHERE num=1234;
+SELECT * FROM "php_pgsql_test" WHERE "num"=1234;
 Ok
