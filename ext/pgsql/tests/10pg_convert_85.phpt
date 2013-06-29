@@ -21,10 +21,10 @@ var_dump($converted);
 ?>
 --EXPECT--
 array(3) {
-  ["num"]=>
+  [""num""]=>
   string(4) "1234"
-  ["str"]=>
+  [""str""]=>
   string(5) "'AAA'"
-  ["bin"]=>
+  [""bin""]=>
   string(11) "'\\x424242'"
 }
