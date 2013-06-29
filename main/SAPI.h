@@ -124,6 +124,9 @@ typedef struct _sapi_globals_struct {
 	struct stat global_stat;
 	char *default_mimetype;
 	char *default_charset;
+	char *input_encoding;
+	char *internal_encoding;
+	char *output_encoding;
 	HashTable *rfc1867_uploaded_files;
 	long post_max_size;
 	int options;
@@ -289,7 +292,7 @@ struct _sapi_post_entry {
 #define SAPI_HEADER_SEND_FAILED			3
 
 #define SAPI_DEFAULT_MIMETYPE		"text/html"
-#define SAPI_DEFAULT_CHARSET		""
+#define SAPI_DEFAULT_CHARSET		"UTF-8"
 #define SAPI_PHP_VERSION_HEADER		"X-Powered-By: PHP/" PHP_VERSION
 
 #define SAPI_POST_READER_FUNC(post_reader) void post_reader(TSRMLS_D)
