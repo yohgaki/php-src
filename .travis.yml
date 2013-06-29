@@ -1,12 +1,5 @@
 language: php
 
-branches:
-  only:
-    PHP-5.3-strict-session
-    PHP-5.4-strict-session
-    PHP-5.5-strict-session
-    pgsql_binary_support 
-
 php:
     # We only specify one version so we only get one worker
     - 5.4
