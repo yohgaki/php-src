@@ -5743,6 +5743,7 @@ PHP_PGSQL_API int php_pgsql_convert(PGconn *pg_link, const char *table_name, con
 						else {
 							unsigned char *tmp;
 							size_t to_len;
+							smart_str s = {0};
 #ifdef HAVE_PQESCAPE_BYTEA_CONN
 							tmp = PQescapeByteaConn(pg_link, Z_STRVAL_PP(val), Z_STRLEN_PP(val), &to_len);
 #else
@@ -5754,7 +5755,13 @@ PHP_PGSQL_API int php_pgsql_convert(PGconn *pg_link, const char *table_name, con
 							memcpy(Z_STRVAL_P(new_val), tmp, to_len);
 							PQfreemem(tmp);
 							php_pgsql_add_quotes(new_val, 1 TSRMLS_CC);
-								
+							// Remove warning for non standard use of /
+							smart_str_appendc(&s, 'E');
+							smart_str_appendl(&s, Z_STRVAL_P(new_val), Z_STRLEN_P(new_val));
+							smart_str_0(&s);
+							efree(Z_STRVAL_P(new_val));
+							Z_STRVAL_P(new_val) = s.c;
+							Z_STRLEN_P(new_val) = s.len;
 						}
 						break;
 						

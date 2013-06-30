@@ -26,5 +26,5 @@ array(3) {
   [""str""]=>
   string(5) "'AAA'"
   [""bin""]=>
-  string(11) "'\\x424242'"
+  string(12) "E'\\x424242'"
 }
