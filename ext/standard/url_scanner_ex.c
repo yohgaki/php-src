@@ -905,7 +905,7 @@ yy80:
 	yych = *YYCURSOR;
 	goto yy79;
 }
-#line 348 "ext/standard/url_scanner_ex.re"
+#line 344 "ext/standard/url_scanner_ex.re"
 
 
 stop:
