@@ -904,20 +904,24 @@ static void _free_result(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 
 static int _php_pgsql_detect_identifier_escape(const char *identifier, size_t len)
 {
-	int wrong = 0;
+	int count = 0;
 	size_t i;
 
-	if (identifier[0] != '"' || identifier[len-1] != '"') {
-		return FAILURE;
-	}
-	for (i = 1; i < len-1; i++) {
+	/* Detect wrong number of " */
+	for (i = 0; i < len-1; i++) {
 		if (identifier[i] == '"') {
-			wrong = !wrong;
+			count++;
 		}
 	}
-	if (wrong) {
+	/* Number of " should be even */
+	if (!(count % 2)) {
 		return FAILURE;
 	}
+	/* Must be srrounded by " */
+	if (count && (identifier[0] != '"' || identifier[len-1] != '"')) {
+		return FAILURE;
+	}
+	/* Escaped properly or not escaped */
 	return SUCCESS;
 }
 
