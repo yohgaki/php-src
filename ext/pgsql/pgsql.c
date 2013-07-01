@@ -913,8 +913,8 @@ static int _php_pgsql_detect_identifier_escape(const char *identifier, size_t le
 	/* Detect double qoutes */
 	if (identifier[0] == '"' && identifier[len-1] == '"') {
 		/* Detect wrong format of " inside of escaped string */
-		for (i = 1; i < len-2; i++) {
-			if (identifier[i] == '"' && identifier[++i] != '"') {
+		for (i = 1; i < len-1; i++) {
+			if (identifier[i] == '"' && (identifier[++i] != '"' || i == len-1)) {
 				return FAILURE;
 			}
 		}
