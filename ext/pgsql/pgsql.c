@@ -903,11 +903,11 @@ static void _free_result(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 
 #if !HAVE_PQESCAPELITERAL
 /* {{{ _php_pgsql_escape_literal
- * Since PQescapeLiteral() is unavailable (PostgreSQL 8.2 <), idenfifers
+ * Since PQescapeLiteral() is unavailable (PostgreSQL 9.0 <), idenfifers
  * should be escaped by pgsql module.
  * Note: this function does not care for encoding. Therefore users should not
  * use this with SJIS/BIG5 etc. (i.e. Encoding base injection may possible with
- * before PostgreSQL 8.2)
+ * before PostgreSQL 9.0)
  */
 static char *_php_pgsql_escape_literal(const char *field, size_t field_len) {
 	ulong field_escaped_len = field_len*2 + 5;
@@ -932,11 +932,11 @@ static char *_php_pgsql_escape_literal(const char *field, size_t field_len) {
 }
 
 /* {{{ _php_pgsql_escape_identifier
- * Since PQescapeIdentifier() is unavailable (PostgreSQL 8.2 <), idenfifers
+ * Since PQescapeIdentifier() is unavailable (PostgreSQL 9.0 <), idenfifers
  * should be escaped by pgsql module.
  * Note: this function does not care for encoding. Therefore users should not
  * use this with SJIS/BIG5 etc. (i.e. Encoding base injection may possible with
- * before PostgreSQL 8.2)
+ * before PostgreSQL 9.0)
  */
 static char *_php_pgsql_escape_identifier(const char *field, size_t field_len) {
 	ulong field_escaped_len = field_len*2 + 3;
