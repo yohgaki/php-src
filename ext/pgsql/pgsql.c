@@ -901,36 +901,24 @@ static void _free_result(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 }
 /* }}} */
 
-#if !HAVE_PQESCAPELITERAL
-/* {{{ _php_pgsql_escape_literal
- * Since PQescapeLiteral() is unavailable (PostgreSQL 9.0 <), idenfifers
- * should be escaped by pgsql module.
- * Note: this function does not care for encoding. Therefore users should not
- * use this with SJIS/BIG5 etc. (i.e. Encoding base injection may possible with
- * before PostgreSQL 9.0)
- */
-static char *_php_pgsql_escape_literal(const char *field, size_t field_len) {
-	ulong field_escaped_len = field_len*2 + 5;
-	ulong i, j = 0;
-	char *field_escaped;
 
-	field_escaped = (char *)malloc(field_escaped_len);
-	field_escaped[j++] = ' ';
-	field_escaped[j++] = 'E';
-	field_escaped[j++] = '\'';
-	for (i = 0; i < field_len; i++) {
-		if (field[i] == '\'') {
-			field_escaped[j++] = '\'';
-			field_escaped[j++] = '\'';
-		} else {
-			field_escaped[j++] = field[i];
+static int _php_pgsql_detect_identifier_escape(const char *identifier, size_t len)
+{
+	size_t i;
+
+	if (identifier[0] != '"' || identifier[len-1] != '"') {
+		return FAILURE;
+	}
+	for (i = 1; i < len-1; i++) {
+		if (identifier[i++] == '"' && identifier[i] == '"') {
+			/* already escaped */
+			return SUCCESS;
 		}
 	}
-	field_escaped[j++] = '\'';
-	field_escaped[j] = '\0';
-	return field_escaped;
+	return FAILURE;
 }
 
+#if !HAVE_PQESCAPELITERAL
 /* {{{ _php_pgsql_escape_identifier
  * Since PQescapeIdentifier() is unavailable (PostgreSQL 9.0 <), idenfifers
  * should be escaped by pgsql module.
@@ -938,7 +926,8 @@ static char *_php_pgsql_escape_literal(const char *field, size_t field_len) {
  * use this with SJIS/BIG5 etc. (i.e. Encoding base injection may possible with
  * before PostgreSQL 9.0)
  */
-static char *_php_pgsql_escape_identifier(const char *field, size_t field_len) {
+static char *_php_pgsql_escape_identifier(const char *field, size_t field_len)
+{
 	ulong field_escaped_len = field_len*2 + 3;
 	ulong i, j = 0;
 	char *field_escaped;
@@ -5850,11 +5839,16 @@ PHP_PGSQL_API int php_pgsql_convert(PGconn *pg_link, const char *table_name, con
 		if (!skip_field) {
 			char *escaped;
 			size_t new_len, field_len = strlen(field);
+
+			if (_php_pgsql_detect_identifier_escape(field, field_len) == SUCCESS) {
+				escaped = estrdup(field);
+			} else {
 #if HAVE_PQESCAPELITERAL
-			escaped = PQescapeIdentifier(pg_link, field, field_len);
+				escaped = PQescapeIdentifier(pg_link, field, field_len);
 #else
-			escaped = _php_pgsql_escape_identifier(field, field_len);
+				escaped = _php_pgsql_escape_identifier(field, field_len);
 #endif
+			}
 			add_assoc_zval(result, escaped, new_val);
 			free(escaped);
 		}
@@ -5934,23 +5928,35 @@ static int do_exec(smart_str *querystr, int expect, PGconn *pg_link, ulong opt T
 static inline void build_tablename(smart_str *querystr, PGconn *pg_link, const char *table)
 {
 	char *table_copy, *escaped, *token, *tmp;
+	size_t len;
+
 	/* schame.table should be "schame"."table" */
 	table_copy = estrdup(table);
 	token = php_strtok_r(table_copy, ".", &tmp);
+	len = strlen(token);
+	if (_php_pgsql_detect_identifier_escape(token, len) == SUCCESS) {
+		escaped = estrdup(token);
+	} else {
 #if HAVE_PQESCAPELITERAL
-	escaped = PQescapeIdentifier(pg_link, token, strlen(token));
+		escaped = PQescapeIdentifier(pg_link, token, len);
 #else
-	escaped = _php_pgsql_escape_identifier(token, strlen(token));
+		escaped = _php_pgsql_escape_identifier(token, len);
 #endif
+	}
 	smart_str_appends(querystr, escaped);
 	free(escaped);
 	if (tmp && *tmp) {
+		len = strlen(tmp);
 		/* "schema"."table" format */
+		if (_php_pgsql_detect_identifier_escape(tmp, len) == SUCCESS) {
+			escaped = estrdup(tmp);
+		} else {
 #if HAVE_PQESCAPELITERAL
-		escaped = PQescapeIdentifier(pg_link, tmp, strlen(tmp));
+			escaped = PQescapeIdentifier(pg_link, tmp, len);
 #else
-		escaped = _php_pgsql_escape_identifier(tmp, strlen(tmp));
+			escaped = _php_pgsql_escape_identifier(tmp, len);
 #endif
+		}
 		smart_str_appendc(querystr, '.');
 		smart_str_appends(querystr, escaped);
 		free(escaped);
