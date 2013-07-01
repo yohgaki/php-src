@@ -904,18 +904,21 @@ static void _free_result(zend_rsrc_list_entry *rsrc TSRMLS_DC)
 
 static int _php_pgsql_detect_identifier_escape(const char *identifier, size_t len)
 {
+	int wrong = 0;
 	size_t i;
 
 	if (identifier[0] != '"' || identifier[len-1] != '"') {
 		return FAILURE;
 	}
 	for (i = 1; i < len-1; i++) {
-		if (identifier[i++] == '"' && identifier[i] == '"') {
-			/* already escaped */
-			return SUCCESS;
+		if (identifier[i] == '"') {
+			wrong = !wrong;
 		}
 	}
-	return FAILURE;
+	if (wrong) {
+		return FAILURE;
+	}
+	return SUCCESS;
 }
 
 #if !HAVE_PQESCAPELITERAL
