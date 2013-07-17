@@ -4627,6 +4627,7 @@ PHP_FUNCTION(pg_send_query)
 	PGconn *pgsql;
 	PGresult *res;
 	int leftover = 0;
+	int ret;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rs",
 							  &pgsql_link, &query, &len) == FAILURE) {
@@ -4654,6 +4655,14 @@ PHP_FUNCTION(pg_send_query)
 			RETURN_FALSE;
 		}
 	}
+	/* Wait to finish sending buffer */
+	while ((ret = PQflush(pgsql))) {
+		if (ret == -1) {
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Could not empty PostgreSQL send buffer");
+			break;
+		}
+		usleep(10000);
+	}
 	if (PQ_SETNONBLOCKING(pgsql, 0)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Cannot set connection to blocking mode");
 	}
@@ -4674,6 +4683,7 @@ PHP_FUNCTION(pg_send_query_params)
 	PGconn *pgsql;
 	PGresult *res;
 	int leftover = 0;
+	int ret;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsa/", &pgsql_link, &query, &query_len, &pv_param_arr) == FAILURE) {
 		return;
@@ -4740,6 +4750,14 @@ PHP_FUNCTION(pg_send_query_params)
 		}
 	}
 	_php_pgsql_free_params(params, num_params);
+	/* Wait to finish sending buffer */
+	while ((ret = PQflush(pgsql))) {
+		if (ret == -1) {
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Could not empty PostgreSQL send buffer");
+			break;
+		}
+		usleep(10000);
+	}
 	if (PQ_SETNONBLOCKING(pgsql, 0)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Cannot set connection to blocking mode");
 	}
@@ -4759,6 +4777,7 @@ PHP_FUNCTION(pg_send_prepare)
 	PGconn *pgsql;
 	PGresult *res;
 	int leftover = 0;
+	int ret;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rss", &pgsql_link, &stmtname, &stmtname_len, &query, &query_len) == FAILURE) {
 		return;
@@ -4789,6 +4808,14 @@ PHP_FUNCTION(pg_send_prepare)
 			RETURN_FALSE;
 		}
 	}
+	/* Wait to finish sending buffer */
+	while ((ret = PQflush(pgsql))) {
+		if (ret == -1) {
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Could not empty postgres send buffer");
+			break;
+		}
+		usleep(10000);
+	}
 	if (PQ_SETNONBLOCKING(pgsql, 0)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Cannot set connection to blocking mode");
 	}
@@ -4811,6 +4838,7 @@ PHP_FUNCTION(pg_send_execute)
 	PGconn *pgsql;
 	PGresult *res;
 	int leftover = 0;
+	int ret;
 
 	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "rsa", &pgsql_link, &stmtname, &stmtname_len, &pv_param_arr) == FAILURE) {
 		return;
@@ -4877,6 +4905,14 @@ PHP_FUNCTION(pg_send_execute)
 		}
 	}
 	_php_pgsql_free_params(params, num_params);
+	/* Wait to finish sending buffer */
+	while ((ret = PQflush(pgsql))) {
+		if (ret == -1) {
+			php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Could not empty postgres send buffer");
+			break;
+		}
+		usleep(10000);
+	}
 	if (PQ_SETNONBLOCKING(pgsql, 0)) {
 		php_error_docref(NULL TSRMLS_CC, E_NOTICE, "Cannot set connection to blocking mode");
 	}

@@ -3,21 +3,72 @@ PHP                                                                        NEWS
 ?? ??? 2013, PHP 5.4.18
 
 - Core:
+  . Fixed bug #65108 (is_callable() triggers Fatal Error). 
+    (David Soria Parra, Laruence)
   . Fixed bug #65088 (Generated configure script is malformed on OpenBSD).
     (Adam)
+  . Fixed bug #62964 (Possible XSS on "Registered stream filters" info).
+    (david at nnucomputerwhiz dot com)
+  . Fixed bug #62672 (Error on serialize of ArrayObject). (Lior Kaplan)
+  . Fixed bug #62475 (variant_* functions causes crash when null given as an 
+    argument). (Felipe)
+  . Fixed bug #60732 (php_error_docref links to invalid pages). (Jakub Vrana)
+  . Fixed bug #65226 (chroot() does not get enabled). (Anatol)
+
+- CGI:
+  . Fixed Bug #65143 (Missing php-cgi man page). (Remi)
 
 - CLI server:
   . Fixed bug #65066 (Cli server not responsive when responding with 422 http
     status code). (Adam)
+    
+- FPM:
+  . Fixed bug #63983 (enabling FPM borks compile on FreeBSD).
+    (chibisuke at web dot de, Felipe)
+    
+- Imap:
+  . Fixed bug #64467 (Segmentation fault after imap_reopen failure).
+    (askalski at gmail dot com)
 
 - Intl: 
-  . Fixed bug #62759: Buggy grapheme_substr() on edge case. (Stas)
+  . Fixed bug #62759 (Buggy grapheme_substr() on edge case). (Stas)
+  . Fixed bug #61860 (Offsets may be wrong for grapheme_stri* functions).
+    (Stas)
+
+- mysqlnd: 
+  . Fixed segfault in mysqlnd when doing long prepare. (Andrey)
+  
+- ODBC:
+  . Fixed bug #61387 (NULL valued anonymous column causes segfault in 
+    odbc_fetch_array). (Brandon Kirsch)
+
+- PDO:
+  . Allowed PDO_OCI to compile with Oracle Database 12c client libraries.
+    (Chris Jones)
+
+- Phar:
+  . Fixed Bug #65142 (Missing phar man page). (Remi)
+
+- Session
+  . Fixed bug #62535 ($_SESSION[$key]["cancel_upload"] doesn't work as
+    documented). (Arpad)
+  . Fixed bug #35703 (when session_name("123") consist only digits, 
+    should warning). (Yasuo)
+  . Fixed bug #49175 (mod_files.sh does not support hash bits). Patch by
+    oorza2k5 at gmail dot com (Yasuo)
 
 - Sockets:
   . Implemented FR #63472 (Setting SO_BINDTODEVICE with socket_set_option). 
     (Damjan Cvetko)
 
-?? ??? 2013, PHP 5.4.17
+- SPL:
+  . Fixed bug #65136 (RecursiveDirectoryIterator segfault). (Laruence)
+  . Fixed bug #61828 (Memleak when calling Directory(Recursive)Iterator
+    /Spl(Temp)FileObject ctor twice). (Laruence)
+  . Fixed bug #60560 (SplFixedArray un-/serialize, getSize(), count() return 0,
+    keys are strings). (Adam)
+
+04 Jul 2013, PHP 5.4.17
 
 - Core:
   . Fixed bug #64988 (Class loading order affects E_STRICT warning). (Laruence)
@@ -64,6 +115,8 @@ PHP                                                                        NEWS
 
 - pgsql:
   . Fixed bug #64609 (pg_convert enum type support). (Matteo)
+  . Fixed bug #65015 (pg_send_query does not flush send buffer)
+       patch submitted by: adam at vektah dot net (Yasuo)
 
 - Readline:
   . Implement FR #55694 (Expose additional readline variable to prevent 
