@@ -187,9 +187,8 @@ PS_CREATE_SID_FUNC(user)
 {
 	/* maintain backwards compatibility */
 	if (PSF(create_sid) != NULL) {
-		zval *args[1];
 		char *id = NULL;
-		STDVARS;
+		zval *retval = NULL;
 
 		retval = ps_call_handler(PSF(create_sid), 0, NULL TSRMLS_CC);
 

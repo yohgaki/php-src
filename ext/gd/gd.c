@@ -104,7 +104,7 @@ int overflow2(int a, int b);
 /* IMPORTANT NOTE FOR NEW FILTER
  * Do not forget to update:
  * IMAGE_FILTER_MAX: define the last filter index
- * IMAGE_FILTER_MAX_ARGS: define the biggest amout of arguments
+ * IMAGE_FILTER_MAX_ARGS: define the biggest amount of arguments
  * image_filter array in PHP_FUNCTION(imagefilter)
  * */
 #define IMAGE_FILTER_NEGATE         0
@@ -2442,7 +2442,7 @@ static void _php_image_create_from(INTERNAL_FUNCTION_PARAMETERS, int image_type,
 		fflush(fp);
 	}
 
-register_im:
+/* register_im: */
 	if (im) {
 		ZEND_REGISTER_RESOURCE(return_value, im, le_gd);
 		php_stream_close(stream);

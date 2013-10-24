@@ -40,16 +40,6 @@
 #include "php.h"
 #include "ext/standard/file.h"
 
-#ifdef HAVE_STDINT_H
-# include <stdint.h>
-#endif
-#ifdef HAVE_INTTYPES_H
-# include <inttypes.h>
-#endif
-#ifdef PHP_WIN32
-# include "win32/php_stdint.h"
-#endif
-
 #if HAVE_EXIF
 
 /* When EXIF_DEBUG is defined the module generates a lot of debug messages
@@ -2595,7 +2585,7 @@ static int exif_process_string_raw(char **result, char *value, size_t byte_count
 
 /* {{{ exif_process_string
  * Copy a string in Exif header to a character string and return length of allocated buffer if any.
- * In contrast to exif_process_string this function does allways return a string buffer */
+ * In contrast to exif_process_string this function does always return a string buffer */
 static int exif_process_string(char **result, char *value, size_t byte_count TSRMLS_DC) {
 	/* we cannot use strlcpy - here the problem is that we cannot use strlen to
 	 * determin length of string and we cannot use strlcpy with len=byte_count+1
@@ -2643,6 +2633,7 @@ static int exif_process_user_comment(image_info_type *ImageInfo, char **pszInfoP
 			} else {
 				decode = ImageInfo->decode_unicode_le;
 			}
+			/* XXX this will fail again if encoding_converter returns on error something different than SIZE_MAX   */
 			if (zend_multibyte_encoding_converter(
 					(unsigned char**)pszInfoPtr, 
 					&len, 
@@ -2650,7 +2641,7 @@ static int exif_process_user_comment(image_info_type *ImageInfo, char **pszInfoP
 					ByteCount,
 					zend_multibyte_fetch_encoding(ImageInfo->encode_unicode TSRMLS_CC),
 					zend_multibyte_fetch_encoding(decode TSRMLS_CC)
-					TSRMLS_CC) < 0) {
+					TSRMLS_CC) == (size_t)-1) {
 				len = exif_process_string_raw(pszInfoPtr, szValuePtr, ByteCount);
 			}
 			return len;
@@ -2663,6 +2654,7 @@ static int exif_process_user_comment(image_info_type *ImageInfo, char **pszInfoP
 			*pszEncoding = estrdup((const char*)szValuePtr);
 			szValuePtr = szValuePtr+8;
 			ByteCount -= 8;
+			/* XXX this will fail again if encoding_converter returns on error something different than SIZE_MAX   */
 			if (zend_multibyte_encoding_converter(
 					(unsigned char**)pszInfoPtr, 
 					&len, 
@@ -2670,7 +2662,7 @@ static int exif_process_user_comment(image_info_type *ImageInfo, char **pszInfoP
 					ByteCount,
 					zend_multibyte_fetch_encoding(ImageInfo->encode_jis TSRMLS_CC),
 					zend_multibyte_fetch_encoding(ImageInfo->motorola_intel ? ImageInfo->decode_jis_be : ImageInfo->decode_jis_le TSRMLS_CC)
-					TSRMLS_CC) < 0) {
+					TSRMLS_CC) == (size_t)-1) {
 				len = exif_process_string_raw(pszInfoPtr, szValuePtr, ByteCount);
 			}
 			return len;
@@ -2700,8 +2692,8 @@ static int exif_process_user_comment(image_info_type *ImageInfo, char **pszInfoP
 static int exif_process_unicode(image_info_type *ImageInfo, xp_field_type *xp_field, int tag, char *szValuePtr, int ByteCount TSRMLS_DC)
 {
 	xp_field->tag = tag;	
-
-	/* Copy the comment */
+	
+	/* XXX this will fail again if encoding_converter returns on error something different than SIZE_MAX   */
 	if (zend_multibyte_encoding_converter(
 			(unsigned char**)&xp_field->value, 
 			&xp_field->size, 
@@ -2709,7 +2701,7 @@ static int exif_process_unicode(image_info_type *ImageInfo, xp_field_type *xp_fi
 			ByteCount,
 			zend_multibyte_fetch_encoding(ImageInfo->encode_unicode TSRMLS_CC),
 			zend_multibyte_fetch_encoding(ImageInfo->motorola_intel ? ImageInfo->decode_unicode_be : ImageInfo->decode_unicode_le TSRMLS_CC)
-			TSRMLS_CC) < 0) {
+			TSRMLS_CC) == (size_t)-1) {
 		xp_field->size = exif_process_string_raw(&xp_field->value, szValuePtr, ByteCount);
 	}
 	return xp_field->size;

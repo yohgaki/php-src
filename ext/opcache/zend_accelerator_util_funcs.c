@@ -478,7 +478,7 @@ static void zend_hash_clone_methods(HashTable *ht, HashTable *source, zend_class
 			if (accel_xlat_get(new_entry->scope, new_ce) == SUCCESS) {
 				new_entry->scope = *new_ce;
 			} else {
-				zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME " class loading error, class %s, function %s. Please call Zend Support", ce->name, new_entry->function_name);
+				zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME " class loading error, class %s, function %s", ce->name, new_entry->function_name);
 			}
 		}
 
@@ -487,7 +487,7 @@ static void zend_hash_clone_methods(HashTable *ht, HashTable *source, zend_class
 			if (accel_xlat_get(new_entry->prototype, new_prototype) == SUCCESS) {
 				new_entry->prototype = *new_prototype;
 			} else {
-				zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME " class loading error, class %s, function %s. Please call Zend Support", ce->name, new_entry->function_name);
+				zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME " class loading error, class %s, function %s", ce->name, new_entry->function_name);
 			}
 		}
 
@@ -589,7 +589,7 @@ static void zend_hash_clone_prop_info(HashTable *ht, HashTable *source, zend_cla
 		} else if (accel_xlat_get(prop_info->ce, new_ce) == SUCCESS) {
 			prop_info->ce = *new_ce;
 		} else {
-			zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME" class loading error, class %s, property %s. Please call Zend Support", ce->name, prop_info->name);
+			zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME" class loading error, class %s, property %s", ce->name, prop_info->name);
 		}
 
 		p = p->pListNext;
@@ -621,7 +621,7 @@ static int zend_prepare_function_for_execution(zend_op_array *op_array)
 		if (accel_xlat_get(ce->handler, new_func) == SUCCESS) { \
 			ce->handler = *new_func; \
 		} else { \
-			zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME " class loading error, class %s. Please call Zend Support", ce->name); \
+			zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME " class loading error, class %s", ce->name); \
 		} \
 	} \
 }
@@ -710,7 +710,7 @@ static void zend_class_copy_ctor(zend_class_entry **pce)
 		if (accel_xlat_get(ce->parent, new_ce) == SUCCESS) {
 			ce->parent = *new_ce;
 		} else {
-			zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME" class loading error, class %s. Please call Zend Support", ce->name);
+			zend_error(E_ERROR, ACCELERATOR_PRODUCT_NAME" class loading error, class %s", ce->name);
 		}
 	}
 
@@ -936,7 +936,7 @@ zend_op_array* zend_accel_load_script(zend_persistent_script *persistent_script,
 			zend_hash_destroy(&ZCG(bind_hash));
 		}
 		/* we must first to copy all classes and then prepare functions, since functions may try to bind
-		   classes - which depend on pre-bind class entries existant in the class table */
+		   classes - which depend on pre-bind class entries existent in the class table */
 		if (zend_hash_num_elements(&persistent_script->function_table) > 0) {
 			zend_accel_function_hash_copy(CG(function_table), &persistent_script->function_table, (unique_copy_ctor_func_t)zend_prepare_function_for_execution);
 		}
