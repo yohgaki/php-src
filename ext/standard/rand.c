@@ -25,8 +25,6 @@
  */
 /* $Id$ */
 
-#include <stdlib.h>
-
 #include "php.h"
 #include "php_math.h"
 #include "php_rand.h"
@@ -34,6 +32,17 @@
 
 #include "basic_functions.h"
 
+#include <stdlib.h>
+#if HAVE_UNISTD_H
+# include <unistd.h>
+#endif
+#ifdef PHP_WIN32
+# include "win32/unistd.h"
+#endif
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 /* SYSTEM RAND FUNCTIONS */
 
@@ -253,6 +262,7 @@ PHPAPI unsigned char *php_random_bytes(size_t size TSRMLS_DC)
 	entropy_file = "/dev/random";
 #endif
 	if (entropy_file) {
+		size_t n;
 		fd = VCWD_OPEN(entropy_file, O_RDONLY);
 		if (fd < 0) {
 			efree(buf);
@@ -266,10 +276,10 @@ PHPAPI unsigned char *php_random_bytes(size_t size TSRMLS_DC)
 		}
 	} else {
 		size_t i;
-		unsinged char c;
+		unsigned char *p;
 		p = buf;
 		for (i = 0; i < size; i++, p++) {
-			p[i] = (unsined char)php_mt_rand(TSRMLS_C);
+			p[i] = (unsigned char)php_mt_rand(TSRMLS_C);
 		}
 	}
 #endif
@@ -432,7 +442,7 @@ PHP_FUNCTION(random_bytes)
 	int size;
 	char *ret;
 
-	if (zend_parse_parameters(argc TSRMLS_CC, "l", &size,) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "l", &size) == FAILURE) {
 		return;
 	}
 	if (size < 1) {
@@ -440,9 +450,9 @@ PHP_FUNCTION(random_bytes)
 		RETURN_FALSE;
 	}
 
-	ret = php_random_bytes(size);
+	ret = (char *)php_random_bytes(size);
 	if (ret) {
-		RETURN_STRINGL(ret, size, 1);
+		RETURN_STRINGL(ret, size, 0);
 	} else {
 		RETURN_FALSE;
 	}
