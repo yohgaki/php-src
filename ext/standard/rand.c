@@ -263,7 +263,7 @@ PHPAPI unsigned char *php_random_bytes(size_t size TSRMLS_DC)
 #if HAVE_DEV_URANDOM
 	entropy_file = "/dev/urandom";
 #elif HAVE_DEV_ARANDOM
-	entropy_file = "/dev/arandon";
+	entropy_file = "/dev/arandom";
 #elif HAVE_DEV_RANDON
 	entropy_file = "/dev/random";
 #endif
