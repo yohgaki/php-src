@@ -97,6 +97,7 @@ PHP_FUNCTION(str_siphash_compare);
 PHP_FUNCTION(str_xxhash32_compare);
 PHP_FUNCTION(str_md5_compare);
 PHP_FUNCTION(str_byte_compare);
+PHP_FUNCTION(str_byte_compare2);
 PHP_FUNCTION(str_compare);
 #ifdef HAVE_STRCOLL
 PHP_FUNCTION(strcoll);

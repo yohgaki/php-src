@@ -5714,6 +5714,7 @@ PHPAPI int php_byte_compare(const void *b1, const void *b2, size_t n) /* {{{ */
 }
 /* }}} */
 
+
 /* {{{ proto bool str_compare(string str1, string str2)
    Timing safe string compare */
 PHP_FUNCTION(str_byte_compare)
@@ -5736,6 +5737,44 @@ PHP_FUNCTION(str_byte_compare)
 	RETURN_BOOL(php_byte_compare(Z_STRVAL_P(s1), Z_STRVAL_P(s2), Z_STRLEN_P(s2)));
 }
 /* }}} */
+
+
+/* Timing safe compare */
+ PHPAPI int php_byte_compare2(const void *b1, size_t b1_len, const void *b2, size_t b2_len) /* {{{ */
+{
+	const unsigned char *p1 = b1, *p2 = b2;
+	int ret = b1_len - b2_len;
+	int mod_len = MAX(b1_len, 1);
+	int n;
+
+	for (n = 0; n < b2_len ; n++) {
+		ret |= p1[n % mod_len] ^ p2[n];
+	}
+	return (ret == 0);
+}
+/* }}} */
+
+/* {{{ proto bool str_compare2(string str1, string str2)
+   Timing safe string compare */
+PHP_FUNCTION(str_byte_compare2)
+{
+	zval *s1, *s2;
+	size_t mod_len;
+
+	if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "zz", &s1, &s2) == FAILURE) {
+		RETURN_FALSE;
+	}
+
+	if (Z_TYPE_P(s1) != IS_STRING || Z_TYPE_P(s2) != IS_STRING) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "Paremeters must be string");
+		RETURN_FALSE;
+	}
+
+	RETURN_BOOL(php_byte_compare2(Z_STRVAL_P(s1), Z_STRLEN_P(s1),
+								  Z_STRVAL_P(s2), Z_STRLEN_P(s2)));
+}
+/* }}} */
+
 
 /* {{{ proto bool str_compare(string str1, string str2)
    strncmp string compare */
