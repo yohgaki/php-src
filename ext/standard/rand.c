@@ -248,6 +248,12 @@ PHPAPI unsigned char *php_random_bytes(size_t size TSRMLS_DC)
 	}
 	buf = (unsigned char *)emalloc(size+1);
 	buf[size] = '\0';
+	/*XXX: Fixme are we going to link with openssl? */
+#if defined(HAVE_OPENSSL)
+	/* Better to use RAND_bytes() (or RAND_pesudo_bytes() when it fails).
+	   OpenSSL may use better RNG/PRNG for the platform. */
+#error OpenSSL RAND_bytes() is not supported.
+#else
 #ifdef PHP_WIN32
 	if (php_win32_get_random_bytes(rbuf, size) == FAILURE) {
 		efree(buf);
@@ -282,6 +288,7 @@ PHPAPI unsigned char *php_random_bytes(size_t size TSRMLS_DC)
 			p[i] = (unsigned char)php_mt_rand(TSRMLS_C);
 		}
 	}
+#endif
 #endif
 	return buf;
 }
