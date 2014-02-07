@@ -226,6 +226,58 @@ PHPAPI php_uint32 php_mt_rand(TSRMLS_D)
 }
 /* }}} */
 
+/* {{{ php_random_bytes
+ */
+PHPAPI unsigned char *php_random_bytes(size_t size TSRMLS_DC)
+{
+	char *entropy_file = NULL;
+	unsigned char *buf;
+	int fd;
+
+	if (size < 0) {
+		return NULL;
+	}
+	buf = (unsigned char *)emalloc(size+1);
+	buf[size] = '\0';
+#ifdef PHP_WIN32
+	if (php_win32_get_random_bytes(rbuf, size) == FAILURE) {
+		efree(buf);
+		return NULL;
+	}
+#else
+#if HAVE_DEV_URANDOM
+	entropy_file = "/dev/urandom";
+#elif HAVE_DEV_ARANDOM
+	entropy_file = "/dev/arandon";
+#elif HAVE_DEV_RANDON
+	entropy_file = "/dev/random";
+#endif
+	if (entropy_file) {
+		fd = VCWD_OPEN(entropy_file, O_RDONLY);
+		if (fd < 0) {
+			efree(buf);
+			return NULL;
+		}
+		n = read(fd, buf, size);
+		close(fd);
+		if (n < size) {
+			efree(buf);
+			return NULL;
+		}
+	} else {
+		size_t i;
+		unsinged char c;
+		p = buf;
+		for (i = 0; i < size; i++, p++) {
+			p[i] = (unsined char)php_mt_rand(TSRMLS_C);
+		}
+	}
+#endif
+	return buf;
+}
+/* }}} */
+
+
 /* {{{ proto void srand([int seed])
    Seeds random number generator */
 PHP_FUNCTION(srand)
@@ -370,6 +422,30 @@ PHP_FUNCTION(mt_getrandmax)
 	 * compatibility with the previous php_rand
 	 */
   	RETURN_LONG(PHP_MT_RAND_MAX); /* 2^^31 */
+}
+/* }}} */
+
+/* {{{ proto string random_bytes(int size)
+   Returns random bytes */
+PHP_FUNCTION(random_bytes)
+{
+	int size;
+	char *ret;
+
+	if (zend_parse_parameters(argc TSRMLS_CC, "l", &size,) == FAILURE) {
+		return;
+	}
+	if (size < 1) {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "size must be grater than 1");
+		RETURN_FALSE;
+	}
+
+	ret = php_random_bytes(size);
+	if (ret) {
+		RETURN_STRINGL(ret, size, 1);
+	} else {
+		RETURN_FALSE;
+	}
 }
 /* }}} */
 
