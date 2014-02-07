@@ -243,7 +243,7 @@ PHPAPI unsigned char *php_random_bytes(size_t size TSRMLS_DC)
 	unsigned char *buf;
 	int fd;
 
-	if (size < 0) {
+	if (size < 1) {
 		return NULL;
 	}
 	buf = (unsigned char *)emalloc(size+1);
