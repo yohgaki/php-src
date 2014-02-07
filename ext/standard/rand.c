@@ -461,6 +461,7 @@ PHP_FUNCTION(random_bytes)
 	if (ret) {
 		RETURN_STRINGL(ret, size, 0);
 	} else {
+		php_error_docref(NULL TSRMLS_CC, E_WARNING, "failed to generate random bytes");
 		RETURN_FALSE;
 	}
 }
