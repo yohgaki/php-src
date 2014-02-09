@@ -44,11 +44,7 @@
 PHP_FUNCTION(uniqid)
 {
 	char *prefix = "";
-#if defined(__CYGWIN__)
-	zend_bool more_entropy = 1;
-#else
 	zend_bool more_entropy = 0;
-#endif
 	char *uniqid;
 	int sec, usec, prefix_len = 0;
 	struct timeval tv;
@@ -58,14 +54,9 @@ PHP_FUNCTION(uniqid)
 		return;
 	}
 
-#if HAVE_USLEEP && !defined(PHP_WIN32)
+#if HAVE_USLEEP
 	if (!more_entropy) {
-#if defined(__CYGWIN__)
-		php_error_docref(NULL TSRMLS_CC, E_WARNING, "You must use 'more entropy' under CYGWIN");
-		RETURN_FALSE;
-#else
 		usleep(1);
-#endif
 	}
 #endif
 	gettimeofday((struct timeval *) &tv, (struct timezone *) NULL);
