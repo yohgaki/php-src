@@ -2778,11 +2778,12 @@ const zend_function_entry basic_functions[] = { /* {{{ */
 	PHP_FE(str_split,														arginfo_str_split)
 	PHP_FE(strpbrk,															arginfo_strpbrk)
 	PHP_FE(substr_compare,													arginfo_substr_compare)
-	PHP_FE(str_siphash_compare,														arginfo_str_compare)
-	PHP_FE(str_xxhash32_compare,														arginfo_str_compare)
-	PHP_FE(str_md5_compare,														arginfo_str_compare)
-	PHP_FE(str_byte_compare,														arginfo_str_compare)
-	PHP_FE(str_byte_compare2,														arginfo_str_compare)
+	PHP_FE(str_siphash_compare,												arginfo_str_compare)
+	PHP_FE(str_xxhash32_compare,											arginfo_str_compare)
+	PHP_FE(str_md5_compare,													arginfo_str_compare)
+	PHP_FE(str_byte_compare,												arginfo_str_compare)
+	PHP_FE(str_byte_compare2,												arginfo_str_compare)
+	PHP_FE(str_word_compare,												arginfo_str_compare)
 	PHP_FE(str_compare,														arginfo_str_compare)
 
 #ifdef HAVE_STRCOLL
