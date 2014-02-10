@@ -5784,10 +5784,10 @@ PHP_FUNCTION(str_byte_compare2)
 	long ret = b1_len - b2_len;
 	int mod_len = MAX(b1_len, 1);
 	int min_len = MIN(b1_len, b2_len);
-	int n, sz=sizeof(long);
+	int n = 0;
 
 	/* Optimize by using word size comparison */
-	for (n = 0; n+sz < min_len ; n += sz) {
+	for (; n+sizeof(long) < min_len ; n += sizeof(long)) {
 		ret |= (long)p1 ^ (long)p2;
 	}
 	/* Comparet the rest, byte by byte */
