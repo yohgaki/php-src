@@ -203,7 +203,7 @@ void php_filter_int(PHP_INPUT_FILTER_PARAM_DECL) /* {{{ */
 
 	PHP_FILTER_TRIM_DEFAULT(p, len);
 
-	if (*p == '0') {
+	if ((allow_hex || allow_octal) && *p == '0') {
 		p++; len--;
 		if (allow_hex && (*p == 'x' || *p == 'X')) {
 			p++; len--;
