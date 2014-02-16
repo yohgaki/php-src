@@ -341,47 +341,51 @@ void php_filter_float(PHP_INPUT_FILTER_PARAM_DECL) /* {{{ */
 	if (str < end && (*str == '+' || *str == '-')) {
 		*p++ = *str++;
 	}
-	first = 1;
-	while (1) {
-		n = 0;
-		while (str < end && *str >= '0' && *str <= '9') {
-			++n;
-			*p++ = *str++;
-		}
-		if (str == end || *str == dec_sep || *str == 'e' || *str == 'E') {
-			if (!first && n != 3) {
-				goto error;
-			}
-			if (*str == dec_sep) {
-				*p++ = '.';
-				str++;
-				while (str < end && *str >= '0' && *str <= '9') {
-					*p++ = *str++;
-				}
-			}
-			if (*str == 'e' || *str == 'E') {
+	if (*str == '0' && *(str+1) >= '0' && *(str+1) <= '9') {
+		goto error;
+	} else {
+		first = 1;
+		while (1) {
+			n = 0;
+			while (str < end && *str >= '0' && *str <= '9') {
+				++n;
 				*p++ = *str++;
-				if (str < end && (*str == '+' || *str == '-')) {
-					*p++ = *str++;
-				}
-				while (str < end && *str >= '0' && *str <= '9') {
-					*p++ = *str++;
-				}
 			}
-			break;
-		}
-		if ((flags & FILTER_FLAG_ALLOW_THOUSAND) && (*str == tsd_sep[0] || *str == tsd_sep[1] || *str == tsd_sep[2])) {
-			if (first?(n < 1 || n > 3):(n != 3)) {
+			if (str == end || *str == dec_sep || *str == 'e' || *str == 'E') {
+				if (!first && n != 3) {
+					goto error;
+				}
+				if (*str == dec_sep) {
+					*p++ = '.';
+					str++;
+					while (str < end && *str >= '0' && *str <= '9') {
+						*p++ = *str++;
+					}
+				}
+				if (*str == 'e' || *str == 'E') {
+					*p++ = *str++;
+					if (str < end && (*str == '+' || *str == '-')) {
+						*p++ = *str++;
+					}
+					while (str < end && *str >= '0' && *str <= '9') {
+						*p++ = *str++;
+					}
+				}
+				break;
+			}
+			if ((flags & FILTER_FLAG_ALLOW_THOUSAND) && (*str == tsd_sep[0] || *str == tsd_sep[1] || *str == tsd_sep[2])) {
+				if (first?(n < 1 || n > 3):(n != 3)) {
+					goto error;
+				}
+				first = 0;
+				str++;
+			} else {
 				goto error;
 			}
-			first = 0;
-			str++;
-		} else {
+		}
+		if (str != end) {
 			goto error;
 		}
-	}
-	if (str != end) {
-		goto error;
 	}
 	*p = 0;
 
