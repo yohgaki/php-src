@@ -573,7 +573,7 @@ html_errors = On
 ; http://php.net/error-log
 ; Example:
 ;error_log = php_errors.log
-; Log errors to syslog (Event Log on NT, not valid in Windows 95).
+; Log errors to syslog (Event Log on Windows).
 ;error_log = syslog
 
 ;windows.show_crt_warning
@@ -678,9 +678,26 @@ auto_append_file =
 ; http://php.net/default-mimetype
 default_mimetype = "text/html"
 
-; PHP's default character set is set to empty.
+; PHP's default character set is set to UTF-8
 ; http://php.net/default-charset
-;default_charset = "UTF-8"
+default_charset = "UTF-8"
+
+; PHP internal character encoding is set to empty.
+; If empty, default_charset is used.
+; http://php.net/internal-encoding
+;internal_encoding =
+
+; PHP input character encoding is set to empty.
+; If empty, default_charset is used.
+; http://php.net/input-encoding
+;input_encoding =
+
+; PHP output character encoding is set to empty.
+; If empty, default_charset is used.
+; mbstring or iconv output handler is used.
+; See also output_buffer.
+; http://php.net/output-encoding
+;output_encoding =
 
 ; Always populate the $HTTP_RAW_POST_DATA variable. PHP's default behavior is
 ; to disable this feature and it will be removed in a future version.
@@ -932,9 +949,22 @@ cli_server.color = On
 ;filter.default_flags =
 
 [iconv]
-;iconv.input_encoding = ISO-8859-1
-;iconv.internal_encoding = ISO-8859-1
-;iconv.output_encoding = ISO-8859-1
+; Use of this INI entry is deprecated, use global input_encoding instead.
+; If empty, default_charset or input_encoding or iconv.input_encoding is used.
+; The precedence is: default_charset < intput_encoding < iconv.input_encoding
+;iconv.input_encoding =
+
+; Use of this INI entry is deprecated, use global internal_encoding instead.
+; If empty, default_charset or internal_encoding or iconv.internal_encoding is used.
+; The precedence is: default_charset < internal_encoding < iconv.internal_encoding
+;iconv.internal_encoding =
+
+; Use of this INI entry is deprecated, use global output_encoding instead.
+; If empty, default_charset or output_encoding or iconv.output_encoding is used.
+; The precedence is: default_charset < output_encoding < iconv.output_encoding
+; To use an output encoding conversion, iconv's output handler must be set
+; otherwise output encoding conversion cannot be performed.
+;iconv.output_encoding =
 
 [intl]
 ;intl.default_locale =
@@ -1014,7 +1044,7 @@ mail.add_x_header = On
 ; The path to a log file that will log all mail() calls. Log entries include
 ; the full path of the script, line number, To address and headers.
 ;mail.log =
-; Log mail to syslog (Event Log on NT, not valid in Windows 95).
+; Log mail to syslog (Event Log on Windows).
 ;mail.log = syslog
 
 [SQL]
@@ -1697,23 +1727,34 @@ mssql.secure_connection = Off
 
 [mbstring]
 ; language for internal character representation.
+; This affects mb_send_mail() and mbstrig.detect_order.
 ; http://php.net/mbstring.language
 ;mbstring.language = Japanese
 
+; Use of this INI entry is deprecated, use global internal_encoding instead.
 ; internal/script encoding.
-; Some encoding cannot work as internal encoding.
-; (e.g. SJIS, BIG5, ISO-2022-*)
-; http://php.net/mbstring.internal-encoding
-;mbstring.internal_encoding = UTF-8
+; Some encoding cannot work as internal encoding. (e.g. SJIS, BIG5, ISO-2022-*)
+; If empty, default_charset or internal_encoding or iconv.internal_encoding is used.
+; The precedence is: default_charset < internal_encoding < iconv.internal_encoding
+;mbstring.internal_encoding =
 
+; Use of this INI entry is deprecated, use global input_encoding instead.
 ; http input encoding.
+; mbstring.encoding_traslation = On is needed to use this setting.
+; If empty, default_charset or input_encoding or mbstring.input is used.
+; The precedence is: default_charset < intput_encoding < mbsting.http_input
 ; http://php.net/mbstring.http-input
-;mbstring.http_input = UTF-8
+;mbstring.http_input =
 
-; http output encoding. mb_output_handler must be
-; registered as output buffer to function
+; Use of this INI entry is deprecated, use global output_encoding instead.
+; http output encoding.
+; mb_output_handler must be registered as output buffer to function.
+; If empty, default_charset or output_encoding or mbstring.http_output is used.
+; The precedence is: default_charset < output_encoding < mbstring.http_output
+; To use an output encoding conversion, mbstring's output handler must be set
+; otherwise output encoding conversion cannot be performed.
 ; http://php.net/mbstring.http-output
-;mbstring.http_output = pass
+;mbstring.http_output =
 
 ; enable automatic encoding translation according to
 ; mbstring.internal_encoding setting. Input chars are
@@ -1724,7 +1765,7 @@ mssql.secure_connection = Off
 ;mbstring.encoding_translation = Off
 
 ; automatic encoding detection order.
-; auto means
+; "auto" detect order is changed accoding to mbstring.language
 ; http://php.net/mbstring.detect-order
 ;mbstring.detect_order = auto
 
@@ -1745,6 +1786,7 @@ mssql.secure_connection = Off
 ;mbstring.func_overload = 0
 
 ; enable strict encoding detection.
+; Default: Off
 ;mbstring.strict_detection = On
 
 ; This directive specifies the regex pattern of content types for which mb_output_handler()
@@ -1933,6 +1975,24 @@ ldap.max_links = -1
 ; A default value for the CURLOPT_CAINFO option. This is required to be an
 ; absolute path.
 ;curl.cainfo =
+
+[openssl]
+; The location of a Certificate Authority (CA) file on the local filesystem
+; to use when verifying the identity of SSL/TLS peers. Most users should
+; not specify a value for this directive as PHP will attempt to use the
+; OS-managed cert stores in its absence. If specified, this value may still
+; be overridden on a per-stream basis via the "cafile" SSL stream context
+; option.
+;openssl.cafile=
+
+; If openssl.cafile is not specified or if the CA file is not found, the
+; directory pointed to by openssl.capath is searched for a suitable
+; certificate. This value must be a correctly hashed certificate directory.
+; Most users should not specify a value for this directive as PHP will
+; attempt to use the OS-managed cert stores in its absence. If specified,
+; this value may still be overridden on a per-stream basis via the "capath"
+; SSL stream context option.
+;openssl.capath=
 
 ; Local Variables:
 ; tab-width: 4

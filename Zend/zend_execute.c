@@ -1352,9 +1352,15 @@ static void zend_fetch_dimension_address_read(temp_variable *result, zval *conta
 	}
 }
 
+ZEND_API void zend_fetch_dimension_by_zval(zval **result, zval *container, zval *dim TSRMLS_DC) {
+	temp_variable tmp;
+	zend_fetch_dimension_address_read(&tmp, container, dim, IS_TMP_VAR, BP_VAR_R TSRMLS_CC);
+	*result = tmp.var.ptr;
+}
+
 static void zend_fetch_property_address(temp_variable *result, zval **container_ptr, zval *prop_ptr, const zend_literal *key, int type TSRMLS_DC)
 {
-	zval *container = *container_ptr;;
+	zval *container = *container_ptr;
 
 	if (Z_TYPE_P(container) != IS_OBJECT) {
 		if (container == &EG(error_zval)) {
@@ -1686,7 +1692,7 @@ ZEND_API zend_execute_data *zend_create_execute_data_from_op_array(zend_op_array
 
 static zend_always_inline zend_bool zend_is_by_ref_func_arg_fetch(zend_op *opline, call_slot *call TSRMLS_DC) /* {{{ */
 {
-	zend_uint arg_num = (opline->extended_value & ZEND_FETCH_ARG_MASK) + call->num_additional_args;
+	zend_uint arg_num = opline->extended_value & ZEND_FETCH_ARG_MASK;
 	return ARG_SHOULD_BE_SENT_BY_REF(call->fbc, arg_num);
 }
 /* }}} */
