@@ -481,7 +481,7 @@ PHP_FUNCTION(apache_request_headers) /* {{{ */
 {
 	php_cli_server_client *client;
 	HashTable *headers;
-	char *key, *tmp;
+	char *key;
 	uint key_len;
 	char **value_pointer;
 	HashPosition pos;
@@ -498,9 +498,7 @@ PHP_FUNCTION(apache_request_headers) /* {{{ */
 	zend_hash_internal_pointer_reset_ex(headers, &pos);
 	while (zend_hash_get_current_data_ex(headers, (void **)&value_pointer, &pos) == SUCCESS) {
 		zend_hash_get_current_key_ex(headers, &key, &key_len, NULL, 0, &pos);
-		tmp = estrndup(key, key_len-1);
-		add_assoc_string_ex(return_value, tmp, key_len, *value_pointer, 1);
-		efree(tmp);
+		add_assoc_string_ex(return_value, key, key_len, *value_pointer, 1);
 		zend_hash_move_forward_ex(headers, &pos);
 	}
 }
