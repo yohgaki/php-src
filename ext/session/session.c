@@ -474,6 +474,7 @@ PHPAPI int php_session_valid_key(const char *key) /* {{{ */
 static void php_session_initialize(void) /* {{{ */
 {
 	zend_string *val = NULL;
+	zend_bool new_id = 0;
 
 	if (!PS(mod)) {
 		php_error_docref(NULL, E_ERROR, "No storage module chosen - failed to initialize session");
@@ -498,6 +499,7 @@ static void php_session_initialize(void) /* {{{ */
 		if (PS(use_cookies)) {
 			PS(send_cookie) = 1;
 		}
+		new_id = 1;
 	} else if (PS(use_strict_mode) && PS(mod)->s_validate_sid &&
 		PS(mod)->s_validate_sid(&PS(mod_data), PS(id)) == FAILURE) {
 		if (PS(id)) {
@@ -510,6 +512,7 @@ static void php_session_initialize(void) /* {{{ */
 		if (PS(use_cookies)) {
 			PS(send_cookie) = 1;
 		}
+		new_id = 1;
 	}
 
 	php_session_reset_id();
@@ -517,7 +520,7 @@ static void php_session_initialize(void) /* {{{ */
 
 	/* Read data */
 	php_session_track_init();
-	if (PS(mod)->s_read(&PS(mod_data), PS(id), &val) == FAILURE) {
+	if (PS(mod)->s_read(&PS(mod_data), PS(id), &val, new_id) == FAILURE) {
 		/* Some broken save handler implementation returns FAILURE for non-existent session ID */
 		/* It's better to raise error for this, but disabled error for better compatibility */
 		/*

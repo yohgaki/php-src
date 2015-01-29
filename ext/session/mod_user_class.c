@@ -73,14 +73,15 @@ PHP_METHOD(SessionHandler, read)
 {
 	zend_string *val;
 	zend_string *key;
+	zend_bool new_id = 0;
 
 	PS_SANITY_CHECK_IS_OPEN;
 
-	if (zend_parse_parameters(ZEND_NUM_ARGS(), "S", &key) == FAILURE) {
+	if (zend_parse_parameters(ZEND_NUM_ARGS(), "S|b", &key, &new_id) == FAILURE) {
 		return;
 	}
 
-	if (PS(default_mod)->s_read(&PS(mod_data), key, &val) == FAILURE) {
+	if (PS(default_mod)->s_read(&PS(mod_data), key, &val, new_id) == FAILURE) {
 		RETVAL_FALSE;
 		return;
 	}

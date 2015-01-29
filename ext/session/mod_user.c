@@ -31,6 +31,11 @@ ps_module ps_mod_user = {
 	ZVAL_LONG(a, val);								\
 }
 
+#define SESS_ZVAL_BOOL(val, a)						\
+{													\
+	ZVAL_BOOL(a, val);								\
+}
+
 #define SESS_ZVAL_STRING(vl, a)						\
 {													\
 	char *__vl = vl;								\
@@ -141,12 +146,13 @@ PS_CLOSE_FUNC(user)
 
 PS_READ_FUNC(user)
 {
-	zval args[1];
+	zval args[2];
 	STDVARS;
 
 	SESS_ZVAL_STR(key, &args[0]);
+	SESS_ZVAL_BOOL(new_id, &args[1]);
 
-	ps_call_handler(&PSF(read), 1, args, &retval);
+	ps_call_handler(&PSF(read), 2, args, &retval);
 
 	if (!Z_ISUNDEF(retval)) {
 		if (Z_TYPE(retval) == IS_STRING) {

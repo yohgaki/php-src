@@ -33,7 +33,7 @@
 #define PS_NUM_APIS      9
 #define PS_OPEN_ARGS     void **mod_data, const char *save_path, const char *session_name
 #define PS_CLOSE_ARGS    void **mod_data
-#define PS_READ_ARGS     void **mod_data, zend_string *key, zend_string **val
+#define PS_READ_ARGS     void **mod_data, zend_string *key, zend_string **val, zend_bool new_id
 #define PS_WRITE_ARGS    void **mod_data, zend_string *key, zend_string *val
 #define PS_DESTROY_ARGS  void **mod_data, zend_string *key
 #define PS_GC_ARGS       void **mod_data, int maxlifetime, int *nrdels
