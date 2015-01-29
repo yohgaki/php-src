@@ -139,6 +139,26 @@ PS_CLOSE_FUNC(user)
 	FINISH;
 }
 
+PS_CREATE_FUNC(user)
+{
+	zval args[1];
+	STDVARS;
+
+	SESS_ZVAL_STR(key, &args[0]);
+
+	ps_call_handler(&PSF(read), 1, args, &retval);
+
+	if (!Z_ISUNDEF(retval)) {
+		if (Z_TYPE(retval) == IS_STRING) {
+			*val = zend_string_copy(Z_STR(retval));
+			ret = SUCCESS;
+		}
+		zval_ptr_dtor(&retval);
+	}
+
+	return ret;
+}
+
 PS_READ_FUNC(user)
 {
 	zval args[1];

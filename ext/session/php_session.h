@@ -30,9 +30,10 @@
 #define PHP_SESSION_API 20150121
 
 /* save handler macros */
-#define PS_NUM_APIS      9
+#define PS_NUM_APIS      10
 #define PS_OPEN_ARGS     void **mod_data, const char *save_path, const char *session_name
 #define PS_CLOSE_ARGS    void **mod_data
+#define PS_CREATE_ARGS   void **mod_data, zend_string *key, zend_string **val
 #define PS_READ_ARGS     void **mod_data, zend_string *key, zend_string **val
 #define PS_WRITE_ARGS    void **mod_data, zend_string *key, zend_string *val
 #define PS_DESTROY_ARGS  void **mod_data, zend_string *key
@@ -45,6 +46,7 @@ typedef struct ps_module_struct {
 	const char *s_name;
 	int (*s_open)(PS_OPEN_ARGS);
 	int (*s_close)(PS_CLOSE_ARGS);
+	int (*s_create)(PS_READ_ARGS);
 	int (*s_read)(PS_READ_ARGS);
 	int (*s_write)(PS_WRITE_ARGS);
 	int (*s_destroy)(PS_DESTROY_ARGS);
@@ -59,6 +61,7 @@ typedef struct ps_module_struct {
 
 #define PS_OPEN_FUNC(x) 	int ps_open_##x(PS_OPEN_ARGS)
 #define PS_CLOSE_FUNC(x) 	int ps_close_##x(PS_CLOSE_ARGS)
+#define PS_CREATE_FUNC(x) 	int ps_create_##x(PS_CREATE_ARGS)
 #define PS_READ_FUNC(x) 	int ps_read_##x(PS_READ_ARGS)
 #define PS_WRITE_FUNC(x) 	int ps_write_##x(PS_WRITE_ARGS)
 #define PS_DESTROY_FUNC(x) 	int ps_delete_##x(PS_DESTROY_ARGS)
@@ -71,6 +74,7 @@ typedef struct ps_module_struct {
 #define PS_FUNCS(x) \
 	PS_OPEN_FUNC(x); \
 	PS_CLOSE_FUNC(x); \
+	PS_CREATE_FUNC(x); \
 	PS_READ_FUNC(x); \
 	PS_WRITE_FUNC(x); \
 	PS_DESTROY_FUNC(x); \
@@ -78,7 +82,7 @@ typedef struct ps_module_struct {
 	PS_CREATE_SID_FUNC(x)
 
 #define PS_MOD(x) \
-	#x, ps_open_##x, ps_close_##x, ps_read_##x, ps_write_##x, \
+	#x, ps_open_##x, ps_close_##x, ps_create_##x, ps_read_##x, ps_write_##x, \
 	 ps_delete_##x, ps_gc_##x, php_session_create_id, \
 	 php_session_validate_sid, php_session_update_timestamp
 
@@ -86,6 +90,7 @@ typedef struct ps_module_struct {
 #define PS_FUNCS_SID(x) \
 	PS_OPEN_FUNC(x); \
 	PS_CLOSE_FUNC(x); \
+	PS_CREATE_FUNC(x); \
 	PS_READ_FUNC(x); \
 	PS_WRITE_FUNC(x); \
 	PS_DESTROY_FUNC(x); \
@@ -95,7 +100,7 @@ typedef struct ps_module_struct {
 	PS_UPDATE_TIMESTAMP_FUNC(x);
 
 #define PS_MOD_SID(x) \
-	#x, ps_open_##x, ps_close_##x, ps_read_##x, ps_write_##x, \
+	#x, ps_open_##x, ps_close_##x, ps_create_##x, ps_read_##x, ps_write_##x, \
 	 ps_delete_##x, ps_gc_##x, ps_create_sid_##x, \
 	 php_session_validate_sid, php_session_update_timestamp
 
@@ -104,6 +109,7 @@ typedef struct ps_module_struct {
 #define PS_FUNCS_UPDATE_TIMESTAMP(x) \
 	PS_OPEN_FUNC(x); \
 	PS_CLOSE_FUNC(x); \
+	PS_CREATE_FUNC(x); \
 	PS_READ_FUNC(x); \
 	PS_WRITE_FUNC(x); \
 	PS_DESTROY_FUNC(x); \
@@ -113,7 +119,7 @@ typedef struct ps_module_struct {
 	PS_UPDATE_TIMESTAMP_FUNC(x);
 
 #define PS_MOD_UPDATE_TIMESTAMP(x) \
-	#x, ps_open_##x, ps_close_##x, ps_read_##x, ps_write_##x, \
+	#x, ps_open_##x, ps_close_##x, ps_create_##x, ps_read_##x, ps_write_##x, \
 	 ps_delete_##x, ps_gc_##x, ps_create_sid_##x, \
 	 ps_validate_sid_##x, ps_update_timestamp_##x
 

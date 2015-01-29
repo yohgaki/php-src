@@ -217,6 +217,50 @@ static void ps_files_open(ps_files *data, const char *key)
 	}
 }
 
+static int ps_files_read(ps_files *data, zend_string *key, zend_string **val)
+{
+	zend_long n;
+	zend_stat_t sbuf;
+
+	ps_files_open(data, key->val);
+	if (data->fd < 0) {
+		return FAILURE;
+	}
+
+	if (zend_fstat(data->fd, &sbuf)) {
+		return FAILURE;
+	}
+
+	data->st_size = sbuf.st_size;
+
+	if (sbuf.st_size == 0) {
+		*val = STR_EMPTY_ALLOC();
+		return SUCCESS;
+	}
+
+	*val = zend_string_alloc(sbuf.st_size, 0);
+
+#if defined(HAVE_PREAD)
+	n = pread(data->fd, (*val)->val, (*val)->len, 0);
+#else
+	lseek(data->fd, 0, SEEK_SET);
+	n = read(data->fd, (*val)->val, (*val)->len);
+#endif
+
+	if (n != sbuf.st_size) {
+		if (n == -1) {
+			php_error_docref(NULL, E_WARNING, "read failed: %s (%d)", strerror(errno), errno);
+		} else {
+			php_error_docref(NULL, E_WARNING, "read returned less bytes than requested");
+		}
+		zend_string_release(*val);
+		*val =  STR_EMPTY_ALLOC();
+		return FAILURE;
+	}
+
+	return SUCCESS;
+}
+
 static int ps_files_write(ps_files *data, zend_string *key, zend_string *val)
 {
 	zend_long n;
@@ -430,6 +474,24 @@ PS_CLOSE_FUNC(files)
 
 
 /*
+ * Create session data from opened resource.
+ * PARAMETERS: PS_READ_ARGS in php_session.h
+ * RETURN VALUE: SUCCESS or FAILURE. Must set non-NULL session data to (zend_string **val)
+ * for SUCCESS. NULL(default) for FAILUREs.
+ *
+ * Files save handler supports splitting session data into multiple
+ * directories.
+ * *mod_data, *key are guranteed to have non-NULL values.
+ */
+PS_CREATE_FUNC(files)
+{
+	PS_FILES_DATA;
+
+	return ps_files_read(data, key, val);
+}
+
+
+/*
  * Read session data from opened resource.
  * PARAMETERS: PS_READ_ARGS in php_session.h
  * RETURN VALUE: SUCCESS or FAILURE. Must set non-NULL session data to (zend_string **val)
@@ -441,47 +503,9 @@ PS_CLOSE_FUNC(files)
  */
 PS_READ_FUNC(files)
 {
-	zend_long n;
-	zend_stat_t sbuf;
 	PS_FILES_DATA;
 
-	ps_files_open(data, key->val);
-	if (data->fd < 0) {
-		return FAILURE;
-	}
-
-	if (zend_fstat(data->fd, &sbuf)) {
-		return FAILURE;
-	}
-
-	data->st_size = sbuf.st_size;
-
-	if (sbuf.st_size == 0) {
-		*val = STR_EMPTY_ALLOC();
-		return SUCCESS;
-	}
-
-	*val = zend_string_alloc(sbuf.st_size, 0);
-
-#if defined(HAVE_PREAD)
-	n = pread(data->fd, (*val)->val, (*val)->len, 0);
-#else
-	lseek(data->fd, 0, SEEK_SET);
-	n = read(data->fd, (*val)->val, (*val)->len);
-#endif
-
-	if (n != sbuf.st_size) {
-		if (n == -1) {
-			php_error_docref(NULL, E_WARNING, "read failed: %s (%d)", strerror(errno), errno);
-		} else {
-			php_error_docref(NULL, E_WARNING, "read returned less bytes than requested");
-		}
-		zend_string_release(*val);
-		*val =  STR_EMPTY_ALLOC();
-		return FAILURE;
-	}
-
-	return SUCCESS;
+	return ps_files_read(data, key, val);
 }
 
 
