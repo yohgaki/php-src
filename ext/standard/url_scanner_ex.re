@@ -370,31 +370,6 @@ stop:
 	ctx->buf.s->len = rest;
 }
 
-char *php_url_scanner_adapt_single_url(const char *url, size_t urllen, const char *name, const char *value, size_t *newlen)
-{
-	char *result;
-	smart_str surl = {0};
-	smart_str buf = {0};
-	smart_str url_app = {0};
-
-	smart_str_setl(&surl, url, urllen);
-
-	smart_str_appends(&url_app, name);
-	smart_str_appendc(&url_app, '=');
-	smart_str_appends(&url_app, value);
-
-	append_modified_url(&surl, &buf, &url_app, PG(arg_separator).output);
-
-	smart_str_0(&buf);
-	if (newlen) *newlen = buf.s->len;
-	result = estrndup(buf.s->val, buf.s->len);
-
-	smart_str_free(&url_app);
-	smart_str_free(&buf);
-
-	return result;
-}
-
 
 static char *url_adapt_ext(const char *src, size_t srclen, size_t *newlen, zend_bool do_flush)
 {
