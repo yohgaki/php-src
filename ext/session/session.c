@@ -2206,6 +2206,7 @@ static PHP_FUNCTION(session_start)
 						break;
 				}
 			}
+			(void) num_idx;
 		} ZEND_HASH_FOREACH_END();
 	}
 
