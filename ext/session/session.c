@@ -1458,7 +1458,7 @@ PHPAPI void php_session_reset_id(void) /* {{{ */
 		PS(send_cookie) = 0;
 	}
 
-	/* if the SID constant exists, destroy it. */
+	/* If the SID constant exists, destroy it. */
 	/* We must not delete any items in EG(zend_contants) */
 	/* zend_hash_str_del(EG(zend_constants), "sid", sizeof("sid") - 1); */
 	sid = zend_get_constant_str("SID", sizeof("SID") - 1);
@@ -1487,7 +1487,7 @@ PHPAPI void php_session_reset_id(void) /* {{{ */
 	}
 
 	if (APPLY_TRANS_SID) {
-		php_url_scanner_reset_vars();
+		/* php_url_scanner_reset_vars(); */
 		php_url_scanner_add_var(PS(session_name), strlen(PS(session_name)), PS(id)->val, PS(id)->len, 1);
 	}
 }
@@ -1529,8 +1529,9 @@ PHPAPI void php_session_start(void) /* {{{ */
 
 		default:
 		case php_session_none:
-			PS(define_sid) = 1;
-			PS(send_cookie) = 1;
+			/* Setup internal flags */
+			PS(define_sid) = PS(use_trans_sid);
+			PS(send_cookie) = PS(use_cookies) || PS(use_only_cookies);
 	}
 
 	lensess = strlen(PS(session_name));
@@ -1544,7 +1545,6 @@ PHPAPI void php_session_start(void) /* {{{ */
 				(ppid = zend_hash_str_find(Z_ARRVAL_P(data), PS(session_name), lensess))
 		) {
 			ppid2sid(ppid);
-			PS(define_sid) = 0;
 			PS(send_cookie) = 0;
 		}
 
@@ -1568,7 +1568,6 @@ PHPAPI void php_session_start(void) /* {{{ */
 	/* Check the REQUEST_URI symbol for a string of the form
 	 * '<session-name>=<session-id>' to allow URLs of the form
 	 * http://yoursite/<session-name>=<session-id>/script.php */
-
 	if (!PS(use_only_cookies) && !PS(id) && !Z_ISUNDEF(PG(http_globals)[TRACK_VARS_SERVER]) &&
 			(data = zend_hash_str_find(Z_ARRVAL(PG(http_globals)[TRACK_VARS_SERVER]), "REQUEST_URI", sizeof("REQUEST_URI") - 1)) &&
 			Z_TYPE_P(data) == IS_STRING &&
@@ -2848,7 +2847,7 @@ static int php_session_rfc1867_callback(unsigned int event, void *event_data, vo
 					smart_str_appendl(&progress->key, *data->value, value_len);
 					smart_str_0(&progress->key);
 
-					progress->apply_trans_sid = PS(use_trans_sid);
+					progress->apply_trans_sid = APPLY_TRANS_SID;
 					php_session_rfc1867_early_find_sid(progress);
 				}
 			}
@@ -2887,7 +2886,10 @@ static int php_session_rfc1867_callback(unsigned int event, void *event_data, vo
 
 				php_rinit_session(0);
 				PS(id) = zend_string_init(Z_STRVAL(progress->sid), Z_STRLEN(progress->sid), 0);
-				PS(apply_trans_sid) = progress->apply_trans_sid;
+				if (progress->apply_trans_sid) {
+					PS(use_trans_sid) = 1;
+					PS(use_only_cookies) = 0;
+				}
 				PS(send_cookie) = 0;
 			}
 
