@@ -93,6 +93,8 @@ zend_class_entry *php_session_update_timestamp_iface_entry;
 		return FAILURE;	\
 	}
 
+#define APPLY_TRANS_SID (PS(use_trans_sid) && !PS(use_only_cookies))
+
 static void php_session_send_cookie(void);
 
 /* Dispatched by RINIT and by php_session_destroy */
@@ -534,13 +536,6 @@ static void php_session_initialize(void) /* {{{ */
 		}
 		php_session_decode(val);
 		zend_string_release(val);
-	}
-
-	if (!PS(use_cookies) && PS(send_cookie)) {
-		if (PS(use_trans_sid) && !PS(use_only_cookies)) {
-			PS(apply_trans_sid) = 1;
-		}
-		PS(send_cookie) = 0;
 	}
 }
 /* }}} */
@@ -1491,7 +1486,7 @@ PHPAPI void php_session_reset_id(void) /* {{{ */
 		}
 	}
 
-	if (PS(apply_trans_sid)) {
+	if (APPLY_TRANS_SID) {
 		php_url_scanner_reset_vars();
 		php_url_scanner_add_var(PS(session_name), strlen(PS(session_name)), PS(id)->val, PS(id)->len, 1);
 	}
@@ -1505,12 +1500,6 @@ PHPAPI void php_session_start(void) /* {{{ */
 	char *p, *value;
 	int nrand;
 	size_t lensess;
-
-	if (PS(use_only_cookies)) {
-		PS(apply_trans_sid) = 0;
-	} else {
-		PS(apply_trans_sid) = PS(use_trans_sid);
-	}
 
 	switch (PS(session_status)) {
 		case php_session_active:
@@ -1555,8 +1544,8 @@ PHPAPI void php_session_start(void) /* {{{ */
 				(ppid = zend_hash_str_find(Z_ARRVAL_P(data), PS(session_name), lensess))
 		) {
 			ppid2sid(ppid);
-			PS(apply_trans_sid) = 0;
 			PS(define_sid) = 0;
+			PS(send_cookie) = 0;
 		}
 
 		if (!PS(use_only_cookies) && !PS(id) &&
@@ -1591,14 +1580,12 @@ PHPAPI void php_session_start(void) /* {{{ */
 		p += lensess + 1;
 		if ((q = strpbrk(p, "/?\\"))) {
 			PS(id) = zend_string_init(p, q - p, 0);
-			PS(send_cookie) = 0;
 		}
 	}
 
 	/* Check whether the current request was referred to by
 	 * an external site which invalidates the previously found id. */
-
-	if (PS(id) &&
+	if (!PS(use_only_cookies) && PS(id) &&
 			PS(extern_referer_chk)[0] != '\0' &&
 			!Z_ISUNDEF(PG(http_globals)[TRACK_VARS_SERVER]) &&
 			(data = zend_hash_str_find(Z_ARRVAL(PG(http_globals)[TRACK_VARS_SERVER]), "HTTP_REFERER", sizeof("HTTP_REFERER") - 1)) &&
@@ -1608,10 +1595,6 @@ PHPAPI void php_session_start(void) /* {{{ */
 	) {
 		zend_string_release(PS(id));
 		PS(id) = NULL;
-		PS(send_cookie) = 1;
-		if (PS(use_trans_sid) && !PS(use_only_cookies)) {
-			PS(apply_trans_sid) = 1;
-		}
 	}
 
 	/* Finally check session id for dangerous characters
