@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2014 The PHP Group                                |
+   | Copyright (c) 1997-2015 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -592,6 +592,14 @@ PHPAPI char *php_get_uname(char mode)
 
 		php_get_windows_cpu(wincpu, sizeof(wincpu));
 		dwBuild = (DWORD)(HIWORD(dwVersion));
+		
+		/* Windows "version" 6.2 could be Windows 8/Windows Server 2012, but also Windows 8.1/Windows Server 2012 R2 */
+		if (dwWindowsMajorVersion == 6 && dwWindowsMinorVersion == 2) {
+			if (strncmp(winver, "Windows 8.1", 11) == 0 || strncmp(winver, "Windows Server 2012 R2", 22) == 0) {
+				dwWindowsMinorVersion = 3;
+			}
+		}
+		
 		snprintf(tmp_uname, sizeof(tmp_uname), "%s %s %d.%d build %d (%s) %s",
 				 "Windows NT", ComputerName,
 				 dwWindowsMajorVersion, dwWindowsMinorVersion, dwBuild, winver?winver:"unknown", wincpu);

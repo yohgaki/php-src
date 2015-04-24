@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2014 The PHP Group                                |
+   | Copyright (c) 1997-2015 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -205,15 +205,17 @@ static void do_adjust_relative(timelib_time* time)
 		time->m += time->relative.m;
 		time->y += time->relative.y;
 	}
+
 	switch (time->relative.first_last_day_of) {
-		case 1: /* first */
+		case TIMELIB_SPECIAL_FIRST_DAY_OF_MONTH: /* first */
 			time->d = 1;
 			break;
-		case 2: /* last */
+		case TIMELIB_SPECIAL_LAST_DAY_OF_MONTH: /* last */
 			time->d = 0;
 			time->m++;
 			break;
 	}
+
 	timelib_do_normalize(time);
 }
 
@@ -295,6 +297,15 @@ static void do_adjust_special_early(timelib_time* time)
 				time->relative.m = 0;
 				break;
 		}
+	}
+	switch (time->relative.first_last_day_of) {
+		case TIMELIB_SPECIAL_FIRST_DAY_OF_MONTH: /* first */
+			time->d = 1;
+			break;
+		case TIMELIB_SPECIAL_LAST_DAY_OF_MONTH: /* last */
+			time->d = 0;
+			time->m++;
+			break;
 	}
 	timelib_do_normalize(time);
 }

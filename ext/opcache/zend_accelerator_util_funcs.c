@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | Zend OPcache                                                         |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1998-2014 The PHP Group                                |
+   | Copyright (c) 1998-2015 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -979,7 +979,6 @@ zend_op_array* zend_accel_load_script(zend_persistent_script *persistent_script,
 		if (zend_hash_num_elements(&persistent_script->class_table) > 0) {
 			zend_accel_class_hash_copy(CG(class_table), &persistent_script->class_table, NULL TSRMLS_CC);
 		}
-		free_persistent_script(persistent_script, 0); /* free only hashes */
 	}
 
 #if ZEND_EXTENSION_API_NO >= PHP_5_3_X_API_NO
@@ -990,6 +989,10 @@ zend_op_array* zend_accel_load_script(zend_persistent_script *persistent_script,
 		CG(compiled_filename) = orig_compiled_filename;
 	}
 #endif
+
+	if (!from_shared_memory) {
+		free_persistent_script(persistent_script, 0); /* free only hashes */
+	}
 
 	return op_array;
 }

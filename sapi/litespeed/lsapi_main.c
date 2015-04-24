@@ -2,7 +2,7 @@
    +----------------------------------------------------------------------+
    | PHP Version 5                                                        |
    +----------------------------------------------------------------------+
-   | Copyright (c) 1997-2014 The PHP Group                                |
+   | Copyright (c) 1997-2015 The PHP Group                                |
    +----------------------------------------------------------------------+
    | This source file is subject to version 3.01 of the PHP license,      |
    | that is bundled with this package in the file LICENSE, and is        |
@@ -69,7 +69,7 @@
 
 #define SAPI_LSAPI_MAX_HEADER_LENGTH 2048
 
-static int  lsapi_mode       = 1;
+static int  lsapi_mode       = 0;
 static char *php_self        = "";
 static char *script_filename = "";
 static int  source_highlight = 0;
@@ -155,7 +155,7 @@ static int sapi_lsapi_ub_write(const char *str, uint str_length TSRMLS_DC)
 
 /* {{{ sapi_lsapi_flush
  */
-static void sapi_lsapi_flush( void * server_context )
+static void sapi_lsapi_flush( void * server_context TSRMLS_DC )
 {
     if ( lsapi_mode ) {
         if ( LSAPI_Flush() == -1) {
@@ -195,15 +195,27 @@ static char *sapi_lsapi_getenv( char * name, size_t name_len TSRMLS_DC )
 /* }}} */
 
 
-/*
+
+
 static int add_variable( const char * pKey, int keyLen, const char * pValue, int valLen,
                          void * arg )
 {
-    php_register_variable_safe((char *)pKey, (char *)pValue, valLen, (zval *)arg TSRMLS_CC);
-    return 1;
-}
-*/
+#if PHP_MAJOR_VERSION >= 7
+	int filter_arg = (Z_ARR_P((zval *)arg) == Z_ARR(PG(http_globals)[TRACK_VARS_ENV]))
+        ? PARSE_ENV : PARSE_SERVER;
+#else
+    int filter_arg = (arg == PG(http_globals)[TRACK_VARS_ENV])?PARSE_ENV:PARSE_SERVER;
+#endif
+    char * new_val = (char *) pValue; 
+    unsigned int new_val_len;
 
+    if (sapi_module.input_filter(filter_arg, (char *)pKey, &new_val, valLen, &new_val_len TSRMLS_CC)) {
+        php_register_variable_safe((char *)pKey, new_val, new_val_len, (zval *)arg );
+    }
+	return 1;
+}
+
+/*
 static int add_variable( const char * pKey, int keyLen, const char * pValue, int valLen,
                          void * arg )
 {
@@ -221,6 +233,73 @@ static int add_variable( const char * pKey, int keyLen, const char * pValue, int
     zend_hash_update( symtable1, pKey1, keyLen + 1, &gpc_element, sizeof( zval *), (void **) &gpc_element_p );
 #endif
     return 1;
+}
+*/
+
+static void litespeed_php_import_environment_variables(zval *array_ptr TSRMLS_DC)
+{
+	char buf[128];
+	char **env, *p, *t = buf;
+	size_t alloc_size = sizeof(buf);
+	unsigned long nlen; /* ptrdiff_t is not portable */
+
+#if PHP_MAJOR_VERSION >= 7
+    if (Z_TYPE(PG(http_globals)[TRACK_VARS_ENV]) == IS_ARRAY &&
+        Z_ARR_P(array_ptr) != Z_ARR(PG(http_globals)[TRACK_VARS_ENV]) &&
+        zend_hash_num_elements(Z_ARRVAL(PG(http_globals)[TRACK_VARS_ENV])) > 0
+	) {
+        zval_dtor(array_ptr);
+        ZVAL_DUP(array_ptr, &PG(http_globals)[TRACK_VARS_ENV]);
+		return;
+    } else if (Z_TYPE(PG(http_globals)[TRACK_VARS_SERVER]) == IS_ARRAY &&
+        Z_ARR_P(array_ptr) != Z_ARR(PG(http_globals)[TRACK_VARS_SERVER]) &&
+        zend_hash_num_elements(Z_ARRVAL(PG(http_globals)[TRACK_VARS_SERVER])) > 0
+	) {
+        zval_dtor(array_ptr);
+        ZVAL_DUP(array_ptr, &PG(http_globals)[TRACK_VARS_SERVER]);
+		return;
+	}
+#else
+    if (PG(http_globals)[TRACK_VARS_ENV] &&
+        array_ptr != PG(http_globals)[TRACK_VARS_ENV] &&
+        Z_TYPE_P(PG(http_globals)[TRACK_VARS_ENV]) == IS_ARRAY &&
+        zend_hash_num_elements(Z_ARRVAL_P(PG(http_globals)[TRACK_VARS_ENV])) > 0
+    ) {
+        zval_dtor(array_ptr);
+        *array_ptr = *PG(http_globals)[TRACK_VARS_ENV];
+        INIT_PZVAL(array_ptr);
+        zval_copy_ctor(array_ptr);
+        return;
+    } else if (PG(http_globals)[TRACK_VARS_SERVER] &&
+        array_ptr != PG(http_globals)[TRACK_VARS_SERVER] &&
+        Z_TYPE_P(PG(http_globals)[TRACK_VARS_SERVER]) == IS_ARRAY &&
+        zend_hash_num_elements(Z_ARRVAL_P(PG(http_globals)[TRACK_VARS_SERVER])) > 0
+    ) {
+        zval_dtor(array_ptr);
+        *array_ptr = *PG(http_globals)[TRACK_VARS_SERVER];
+        INIT_PZVAL(array_ptr);
+        zval_copy_ctor(array_ptr);
+        return;
+    }
+#endif
+
+	for (env = environ; env != NULL && *env != NULL; env++) {
+		p = strchr(*env, '=');
+		if (!p) {				/* malformed entry? */
+			continue;
+		}
+		nlen = p - *env;
+		if (nlen >= alloc_size) {
+			alloc_size = nlen + 64;
+			t = (t == buf ? emalloc(alloc_size): erealloc(t, alloc_size));
+		}
+		memcpy(t, *env, nlen);
+		t[nlen] = '\0';
+		add_variable(t, nlen, p + 1, strlen( p + 1 ), array_ptr TSRMLS_CC);
+	}
+	if (t != buf && t != NULL) {
+		efree(t);
+	}
 }
 
 
@@ -255,6 +334,8 @@ static void sapi_lsapi_register_variables(zval *track_vars_array TSRMLS_DC)
         if ( (SG(request_info).request_uri ) )
             php_self = (SG(request_info).request_uri );
 
+        litespeed_php_import_environment_variables(track_vars_array TSRMLS_CC);
+
 #if ((PHP_MAJOR_VERSION == 5 && PHP_MINOR_VERSION < 4) || PHP_MAJOR_VERSION < 5)
         if (!PG(magic_quotes_gpc)) {
 #endif
@@ -268,7 +349,6 @@ static void sapi_lsapi_register_variables(zval *track_vars_array TSRMLS_DC)
             add_variable_magic_quote("PHP_SELF", 8, php_self, strlen( php_self ), track_vars_array );
         }
 #endif
-        php_import_environment_variables(track_vars_array TSRMLS_CC);
     } else {
         php_import_environment_variables(track_vars_array TSRMLS_CC);
 
@@ -370,7 +450,7 @@ static void sapi_lsapi_log_message(char *message TSRMLS_DC)
 static sapi_module_struct lsapi_sapi_module =
 {
     "litespeed",
-    "LiteSpeed V6.6",
+    "LiteSpeed V6.7",
 
     php_lsapi_startup,              /* startup */
     php_module_shutdown_wrapper,    /* shutdown */
@@ -409,7 +489,7 @@ static sapi_module_struct lsapi_sapi_module =
 };
 /* }}} */
 
-static int init_request_info( TSRMLS_D )
+static void init_request_info( TSRMLS_D )
 {
     char * pContentType = LSAPI_GetHeader( H_CONTENT_TYPE );
     char * pAuth;
@@ -421,8 +501,8 @@ static int init_request_info( TSRMLS_D )
     SG(request_info).content_length = LSAPI_GetReqBodyLen();
     SG(request_info).path_translated = estrdup( LSAPI_GetScriptFileName());
 
-    /* It is not reset by zend engine, set it to 0. */
-    SG(sapi_headers).http_response_code = 0;
+    /* It is not reset by zend engine, set it to 200. */
+    SG(sapi_headers).http_response_code = 200;
     
     pAuth = LSAPI_GetHeader( H_AUTHORIZATION );
     php_handle_auth_data(pAuth TSRMLS_CC);
@@ -535,6 +615,9 @@ static int lsapi_module_main(int show_source TSRMLS_DC)
 static int alter_ini( const char * pKey, int keyLen, const char * pValue, int valLen,
                 void * arg )
 {
+#if PHP_MAJOR_VERSION >= 7
+	zend_string * psKey; 
+#endif
     int type = ZEND_INI_PERDIR;
     if ( '\001' == *pKey ) {
         ++pKey;
@@ -549,9 +632,19 @@ static int alter_ini( const char * pKey, int keyLen, const char * pValue, int va
                 engine = 0;
         }
         else
-            zend_alter_ini_entry((char *)pKey, keyLen,
+		{
+#if PHP_MAJOR_VERSION >= 7
+			psKey = STR_INIT( pKey, keyLen, 1 );
+            zend_alter_ini_entry(psKey, 
                              (char *)pValue, valLen,
                              type, PHP_INI_STAGE_ACTIVATE);
+            STR_RELEASE( psKey );
+#else
+            zend_alter_ini_entry((char *)pKey, keyLen,
+                             (char *)pValue, valLen,
+                             type, PHP_INI_STAGE_ACTIVATE);            
+#endif
+		}
     }
     return 1;
 }
@@ -692,6 +785,9 @@ static int cli_main( int argc, char * argv[] )
     char ** argend= &argv[argc];
     int ret = -1;
     int c;
+#if PHP_MAJOR_VERSION >= 7
+	zend_string * psKey; 
+#endif
     lsapi_mode = 0;        /* enter CLI mode */
 
 #ifdef PHP_WIN32
@@ -706,12 +802,21 @@ static int cli_main( int argc, char * argv[] )
 
         zend_uv.html_errors = 0; /* tell the engine we're in non-html mode */
         CG(in_compilation) = 0; /* not initialized but needed for several options */
+#if PHP_MAJOR_VERSION < 7
         EG(uninitialized_zval_ptr) = NULL;
-
+#endif
         for( ini = ini_defaults; *ini; ini+=2 ) {
+#if PHP_MAJOR_VERSION >= 7
+			psKey = STR_INIT( *ini, strlen( *ini ), 1 );
+            zend_alter_ini_entry( psKey, 
+                                (char *)*(ini+1), strlen( *(ini+1) ),
+                                PHP_INI_SYSTEM, PHP_INI_STAGE_ACTIVATE);
+            STR_RELEASE( psKey );
+#else
             zend_alter_ini_entry( (char *)*ini, strlen( *ini )+1,
                                 (char *)*(ini+1), strlen( *(ini+1) ),
                                 PHP_INI_SYSTEM, PHP_INI_STAGE_ACTIVATE);
+#endif
         }
 
         while (( p < argend )&&(**p == '-' )) {
@@ -735,9 +840,9 @@ static int cli_main( int argc, char * argv[] )
             case 'v':
                 if (php_request_startup(TSRMLS_C) != FAILURE) {
 #if ZEND_DEBUG
-                    php_printf("PHP %s (%s) (built: %s %s) (DEBUG)\nCopyright (c) 1997-2014 The PHP Group\n%s", PHP_VERSION, sapi_module.name, __DATE__, __TIME__, get_zend_version());
+                    php_printf("PHP %s (%s) (built: %s %s) (DEBUG)\nCopyright (c) 1997-2015 The PHP Group\n%s", PHP_VERSION, sapi_module.name, __DATE__, __TIME__, get_zend_version());
 #else
-                    php_printf("PHP %s (%s) (built: %s %s)\nCopyright (c) 1997-2014 The PHP Group\n%s", PHP_VERSION, sapi_module.name, __DATE__, __TIME__, get_zend_version());
+                    php_printf("PHP %s (%s) (built: %s %s)\nCopyright (c) 1997-2015 The PHP Group\n%s", PHP_VERSION, sapi_module.name, __DATE__, __TIME__, get_zend_version());
 #endif
 #ifdef PHP_OUTPUT_NEWAPI
                     php_output_end_all(TSRMLS_C);
@@ -996,6 +1101,7 @@ int main( int argc, char * argv[] )
     LSAPI_Init();
    
     LSAPI_Init_Env_Parameters( NULL );
+    lsapi_mode = 1; 
 
     slow_script_msec = LSAPI_Get_Slow_Req_Msecs();
 
@@ -1090,7 +1196,11 @@ zend_module_entry litespeed_module_entry = {
 static int add_associate_array( const char * pKey, int keyLen, const char * pValue, int valLen,
                          void * arg )
 {
-    add_assoc_string_ex( (zval *)arg, (char *)pKey, keyLen+1, (char *)pValue, 1 );
+    add_assoc_string_ex( (zval *)arg, (char *)pKey, keyLen+1, (char *)pValue
+#if PHP_MAJOR_VERSION < 7
+            , 1
+#endif        
+    );
     return 1;
 }
 
@@ -1144,7 +1254,11 @@ PHP_FUNCTION(litespeed_response_headers)
                 headerBuf[len] = 0;
                 if ( len ) {
                     while( isspace(*++p));
-                    add_assoc_string_ex(return_value, headerBuf, len+1, p, 1 );
+                    add_assoc_string_ex(return_value, headerBuf, len+1, p
+#if PHP_MAJOR_VERSION < 7
+                                        , 1
+#endif        
+                    );
                 }
             }
         }
@@ -1159,15 +1273,25 @@ PHP_FUNCTION(litespeed_response_headers)
    Fetch all loaded module names  */
 PHP_FUNCTION(apache_get_modules)
 {
+    static const char * mod_names[] = 
+    {
+        "mod_rewrite", "mod_mime", "mod_headers", "mod_expires", NULL
+    };
+    const char **name = mod_names;
     /* TODO: */
     if (ZEND_NUM_ARGS() > 0) {
         WRONG_PARAM_COUNT;
     }
     array_init(return_value);
-    add_next_index_string(return_value, "mod_rewrite", 1);
-    add_next_index_string(return_value, "mod_mime", 1);
-    add_next_index_string(return_value, "mod_headers", 1);
-    add_next_index_string(return_value, "mod_expires", 1);
+    while( *name )
+    {
+        add_next_index_string(return_value, *name 
+#if PHP_MAJOR_VERSION < 7
+                                        , 1
+#endif        
+        );
+        ++name;
+    }
 }
 /* }}} */
 
