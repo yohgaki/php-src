@@ -1,6 +1,21 @@
 PHP                                                                        NEWS
 |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-?? ??? 2015, PHP 5.5.25
+?? ??? 2015, PHP 5.5.26
+
+- Core:
+  . Fixed bug #69566 (Conditional jump or move depends on uninitialised value
+    in extension trait). (jbboehr at gmail dot com)
+  . Fixed bug #66048 (temp. directory is cached during multiple requests).
+    (Julien)
+
+- Iconv:
+  . Fixed bug #48147 (iconv with //IGNORE cuts the string). (Stas)
+
+- Opcache
+  . Fixed bug #69549 (Memory leak with opcache.optimization_level=0xFFFFFFFF).
+    (Laruence, Dmitry)
+
+14 May 2015, PHP 5.5.25
 
 - Core:
   . Fixed bug #69467 (Wrong checked for the interface by using Trait). 
@@ -13,10 +28,14 @@ PHP                                                                        NEWS
   . Fixed bug #68652 (segmentation fault in destructor). (Dmitry)
   . Fixed bug #69419 (Returning compatible sub generator produces a warning).
     (Nikita)
+  . Fixed bug #69472 (php_sys_readlink ignores misc errors from 
+    GetFinalPathNameByHandleA). (Jan Starke)
 
 - ODBC:
   . Fixed bug #69474 (ODBC: Query with same field name from two tables returns
     incorrect result). (Anatol)
+  . Fixed bug #69381 (out of memory with sage odbc driver). (Frederic Marchall,
+    Anatol Belski)
 
 - OpenSSL:
   . Fixed bug #69402 (Reading empty SSL stream hangs until timeout).
