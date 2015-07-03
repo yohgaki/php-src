@@ -1740,6 +1740,7 @@ static PHP_FUNCTION(session_module_name)
 }
 /* }}} */
 
+
 /* {{{ proto void session_set_save_handler(string open, string close, string read, string write, string destroy, string gc, string create_sid)
    Sets user-level functions */
 static PHP_FUNCTION(session_set_save_handler)
@@ -1842,7 +1843,7 @@ static PHP_FUNCTION(session_set_save_handler)
 		RETURN_TRUE;
 	}
 
-	if (argc != 6 && argc != 7) {
+	if (argc != 6 && argc != PS_MAX_USER_HANDLERS) {
 		WRONG_PARAM_COUNT;
 	}
 
@@ -1874,6 +1875,11 @@ static PHP_FUNCTION(session_set_save_handler)
 		}
 		Z_ADDREF_PP(args[i]);
 		PS(mod_user_names).names[i] = *args[i];
+	}
+	for (;i < PS_MAX_USER_HANDLERS; i++) {
+		if (PS(mod_user_names).names[i] != NULL) {
+			zval_ptr_dtor(&PS(mod_user_names).names[i]);
+		}
 	}
 
 	efree(args);
@@ -2356,8 +2362,8 @@ static PHP_RSHUTDOWN_FUNCTION(session) /* {{{ */
 	php_rshutdown_session_globals(TSRMLS_C);
 
 	/* this should NOT be done in php_rshutdown_session_globals() */
-	for (i = 0; i < 7; i++) {
-		if (PS(mod_user_names).names[i] != NULL) {
+	for (i = 0; i < PS_MAX_USER_HANDLERS; i++) {
+		if (PS(mod_user_names).names[i]) {
 			zval_ptr_dtor(&PS(mod_user_names).names[i]);
 			PS(mod_user_names).names[i] = NULL;
 		}

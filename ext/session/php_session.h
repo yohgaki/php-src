@@ -40,6 +40,8 @@
 #define PS_GC_ARGS void **mod_data, int maxlifetime, int *nrdels TSRMLS_DC
 #define PS_CREATE_SID_ARGS void **mod_data, int *newlen TSRMLS_DC
 
+#define PS_MAX_USER_HANDLERS 7
+
 /* default create id function */
 PHPAPI char *php_session_create_id(PS_CREATE_SID_ARGS);
 
@@ -141,7 +143,7 @@ typedef struct _php_ps_globals {
 	int module_number;
 	long cache_expire;
 	union {
-		zval *names[7];
+		zval *names[PS_MAX_USER_HANDLERS];
 		struct {
 			zval *ps_open;
 			zval *ps_close;
