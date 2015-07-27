@@ -8,6 +8,21 @@ session.name=PHPSESSID
 --FILE--
 <?php
 
+function error_handler($errno, $errstr, $errfile, $errline)
+{
+	if ($errno & E_NOTICE) {
+		return ture; // Ignore notices
+	}
+    if ($errno & E_RECOVERABLE_ERROR) {
+        // Handle E_REVOCERABLE_ERROR
+        echo "\nE_RECOVERABLE_ERROR: {$errstr} in {$errfile} on line {$errline}\n";
+        return true; // Continue execution
+    }
+	return false;
+}
+
+set_error_handler('error_handler');
+
 ob_start();
 
 /* 
