@@ -35,6 +35,7 @@ PHP 7.2 UPGRADE NOTES
 - Standard:
   . Simplified password hashing API updated to support Argon2i hashes when PHP is compiled with libargon2
     (https://wiki.php.net/rfc/argon2_password_hash).
+  . proc_nice() is now supported on Windows platforms.
 
 ========================================
 3. Changes in SAPI modules
@@ -55,10 +56,21 @@ PHP 7.2 UPGRADE NOTES
     'PASSWORD_ARGON2_DEFAULT_TIME_COST', and 'PASSWORD_ARGON2_DEFAULT_THREADS' respectively if not set.
   . password_verify() can verify Argon2i hashes.
   . password_get_info() and password_needs_rehash() can accept Argon2i hashes.
+  . mail()/mb_send_mail() accept array $extra_header. Array paramter is checked against RFC 2822.
+    Array format is 
+    $extra_headers = [
+      'Header-Name' => 'Header value',
+      'Multiple' => ['One header', 'Another header'],
+      'Multiline' = "FirstLine\r\n SecondLine",
+    ];
+
 
 ========================================
 6. New Functions
 ========================================
+
+- GD:
+  . Added imagesetclip() and imagegetclip().
 
 - Mbstring:
   . Added mb_chr() and mb_ord().
@@ -84,6 +96,13 @@ PHP 7.2 UPGRADE NOTES
    . Added extended exif tag support for the following formats: 
      Samsung, DJI, Panasonic, Sony, Pentax, Minolta & Sigma/Foveon.
 
+- GD:
+  . Removed --enable-gd-native-ttf configuration option which was unused as
+    of PHP 5.5.0 anyway.
+  . imagegd() stores truecolor images as real truecolor images. Formerly, they
+    have been converted to palette.
+  . imageantialias() is now also available if compiled with a system libgd.
+
 - Mbstring
   . mb_check_encoding() accepts array parameter. Both key and value
     ecodings are checked recursively.
@@ -93,6 +112,9 @@ PHP 7.2 UPGRADE NOTES
 ========================================
 10. New Global Constants
 ========================================
+
+- GD:
+  . IMG_EFFECT_MULTIPLY
 
 - Standard:
   . PASSWORD_ARGON2_DEFAULT_MEMORY_COST

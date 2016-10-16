@@ -5,6 +5,9 @@ PHP                                                                        NEWS
 - Core:
   . Removed the sql.safe_mode directive. (Kalle)
   . Fixed bug #54535 (WSA cleanup executes before MSHUTDOWN). (Kalle)
+  . Implemented FR #69791 (Disallow mail header injections by extra headers)
+    (Yasuo)
+  . Implemented FR #49806 (proc_nice() for Windows). (Kalle)
 
 - EXIF:
   . Added support for vendor specific tags for the following formats:
@@ -30,6 +33,10 @@ PHP                                                                        NEWS
     handles multibyte replacement char nicely). (Masakielastic, Yasuo)
   . Added array input support to mb_convert_encoding(). (Yasuo)
   . Added array input support to mb_check_encoding(). (Yasuo)
+
+- PDO_DBlib:
+  . Fixed bug #73234 (Emulated statements let value dictate parameter type).
+    (Adam Baratz)
 
 <<< NOTE: Insert NEWS from last stable release here prior to actual release! >>>
 
