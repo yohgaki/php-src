@@ -27,6 +27,7 @@
 
 #include "php.h"
 #include "php_rand.h"
+#include "php_random.h"
 #include "php_mt_rand.h"
 
 /* MT RAND FUNCTIONS */
@@ -158,6 +159,21 @@ PHPAPI void php_mt_srand(uint32_t seed)
 }
 /* }}} */
 
+/* {{{ php_mt_srand_auto
+ */
+PHPAPI void php_mt_srand_auto(void)
+{
+	if (php_random_bytes_silent(BG(state)+1, sizeof(BG(state)[0]) * (N-1)) == SUCCESS) {
+		BG(state)[0] = 0x80000000U;
+		php_mt_reload();
+		BG(mt_rand_is_seeded) = 1;
+	}
+	else {
+		php_mt_srand(GENERATE_SEED());
+	}
+}
+/* }}} */
+
 /* {{{ php_mt_rand
  */
 PHPAPI uint32_t php_mt_rand(void)
@@ -168,7 +184,7 @@ PHPAPI uint32_t php_mt_rand(void)
 	register uint32_t s1;
 
 	if (UNEXPECTED(!BG(mt_rand_is_seeded))) {
-		php_mt_srand(GENERATE_SEED());
+		php_mt_srand_auto();
 	}
 
 	if (BG(left) == 0) {
@@ -197,9 +213,6 @@ PHP_FUNCTION(mt_srand)
 		Z_PARAM_LONG(mode)
 	ZEND_PARSE_PARAMETERS_END();
 
-	if (ZEND_NUM_ARGS() == 0)
-		seed = GENERATE_SEED();
-
 	switch (mode) {
 		case MT_RAND_PHP:
 			BG(mt_rand_mode) = MT_RAND_PHP;
@@ -208,7 +221,10 @@ PHP_FUNCTION(mt_srand)
 			BG(mt_rand_mode) = MT_RAND_MT19937;
 	}
 	
-	php_mt_srand(seed);
+	if (ZEND_NUM_ARGS() == 0)
+		php_mt_srand_auto();
+	else
+		php_mt_srand(seed);
 }
 /* }}} */
 
